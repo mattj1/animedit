@@ -19,7 +19,9 @@ class _TextureMgr:
         pm = self.textures.get(filename)
 
         if pm is None:
+
             pm = QPixmap.fromImage(QImage(filename))
+            print("load texture {} {}".format(filename, pm))
             # pm = QPixmap(filename)
             self.textures[filename] = pm
 

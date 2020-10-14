@@ -3,8 +3,11 @@
 # does not include timeline modifying stuff.
 
 # This is for setting textures, positions, playback info, and probably tweens
+from PySide2.QtCore import QPoint
+
 from Editor import Editor
 from Editor.Actions.Action import Action
+from SpriteAnim.LibraryItem import SymbolLibraryItem
 
 
 class SetFrameTexturePathAction(Action):
@@ -21,13 +24,38 @@ class SetFrameTexturePathAction(Action):
         self.frame.setTexture(texturePath)
     
     def redo(self, editor: Editor):
-        l = self.symbol.getLayer(self.layerNo)
-        l.replaceFrame(self.frame,  self.frameNo)
+        layer = self.symbol.getLayer(self.layerNo)
+        layer.replaceFrame(self.frame,  self.frameNo)
         
     def undo(self, editor: Editor):
-        l = self.symbol.getLayer(self.layerNo)
-        l.replaceFrame(self.prevFrame,  self.frameNo)
-        
+        layer = self.symbol.getLayer(self.layerNo)
+        layer.replaceFrame(self.prevFrame,  self.frameNo)
+
+
+class SetFrameSymbolAction(Action):
+
+    def __init__(self, symbol, item: SymbolLibraryItem, layer_number, frame_number):
+        super(SetFrameSymbolAction, self).__init__()
+        # todo: frame under cursor must exist before drag+drop is even allowed!
+        self.symbol = symbol
+        self.item = item
+        self.layer_number = layer_number
+        self.frame_number = frame_number
+
+        self.prevFrame = symbol.getFrame(layer_number, frame_number)
+        self.frame = self.prevFrame.clone()
+        self.frame.setSymbol(item.symbol)
+
+    def redo(self, editor: Editor):
+        layer = self.symbol.getLayer(self.layer_number)
+        layer.replaceFrame(self.frame, self.frame_number)
+
+    def undo(self, editor: Editor):
+        layer = self.symbol.getLayer(self.layer_number)
+        layer.replaceFrame(self.prevFrame, self.frame_number)
+
+
+
 # Works on keyframes only
 class ChangeOffsetAction(Action):
     def __init__(self,  symbol,  layerNo,  frameNo,  oldOffs,  newOffs):
@@ -50,7 +78,7 @@ class ChangeOffsetAction(Action):
 
 # Move frames sub action
 class ChangeMultipleFrameOffsets(Action):
-    def __init__(self,  symbol, frames, offsDelta):
+    def __init__(self,  symbol, frames, offsDelta: QPoint):
         super(ChangeMultipleFrameOffsets,  self).__init__()
         
         self.symbol = symbol

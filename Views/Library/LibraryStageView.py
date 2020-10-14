@@ -1,6 +1,7 @@
 import TextureMgr
 from Editor import LibraryEditor
 from SpriteAnim import Symbol
+from SpriteAnim.LibraryItem import SymbolLibraryItem
 from Views import StageCanvas
 
 
@@ -12,13 +13,13 @@ class LibraryStageView(StageCanvas):
 
     def get_symbol(self) -> Symbol:
         item = self.library_editor.selected_item()
-        if item.is_symbol():
-            return item.sym
+        if isinstance(item, SymbolLibraryItem):
+            return item.symbol
 
     def get_texture(self):
         item = self.library_editor.selected_item()
         if item.is_texture():
-            return TextureMgr.textureMgr().loadImage(item.texturePath)
+            return TextureMgr.textureMgr().loadImage(item.texture_path)
 
     def mouse_move(self, delta, event):
         super().mouse_move(delta, event)

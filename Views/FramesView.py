@@ -214,7 +214,7 @@ class FramesView(QWidget):
         return int(self.leftFrame + (x - (x % 8)) / 8)
 
     def pixelToLayerNo(self, y):
-        _layer_no = int(self.layerView.topLayer + (y - (y % 18)) / 18)
+        _layer_no = int(self.editor.top_layer + (y - (y % 18)) / 18)
 
         if _layer_no < 0:
             _layer_no = 0

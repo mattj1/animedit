@@ -49,8 +49,6 @@ class StageCanvas(QWidget):
     def is_texture(self):
         return self.get_texture() is not None
 
-
-
     def paintEvent(self, event):
         # Camera position is center of screen
 
@@ -64,7 +62,7 @@ class StageCanvas(QWidget):
         world_top = -self.camera.y() - world_halfheight
         world_bottom = -self.camera.y() + world_halfheight
 
-        print("Paint canvas, camera: {}, {}, X range: {} {}".format(-self.camera.x(), -self.camera.y(), world_left, world_right))
+        # print("Paint canvas, camera: {}, {}, X range: {} {}".format(-self.camera.x(), -self.camera.y(), world_left, world_right))
 
         painter = QPainter(self)
 
@@ -82,19 +80,6 @@ class StageCanvas(QWidget):
         # painter.scale(self.zoom,  self.zoom)
         # painter.translate(self.camera)
 
-        # draw origin lines
-
-        pen = QPen(Qt.SolidLine)
-        pen.setColor(QColor(222, 222, 222, 255))
-        pen.setWidth(0.1)
-        painter.setPen(pen)
-
-        painter.drawLine(-1000, 0, 1000, 0)
-        painter.drawLine(0, -1000, 0, 1000)
-        # self.movie.jumpToFrame(0);
-
-
-
         f = self.frame_number()
         """"
         for i in range(0, f):
@@ -105,7 +90,7 @@ class StageCanvas(QWidget):
         if self.is_symbol():
             symbol = self.get_symbol()
             if symbol:
-                symbol.drawFrame(f, painter)
+                symbol.drawFrame(f, painter=painter)
         else:
             tex = self.get_texture()
             if tex:
@@ -120,18 +105,32 @@ class StageCanvas(QWidget):
 
         if self.zoom >= 8.0:
             for i in range(int(world_left), int(world_right)):
-                painter.drawLine(i, world_top, i, world_bottom)
+                if i != 0:
+                    painter.drawLine(i, world_top, i, world_bottom)
             for i in range(int(world_top), int(world_bottom)):
-                painter.drawLine(world_left, i, world_right, i)
+                if i != 0:
+                    painter.drawLine(world_left, i, world_right, i)
 
-        pen = QPen(Qt.SolidLine)
-        pen.setColor(QColor(0, 0, 0, 255))
+        # Draw origin lines
+
+        pen.setColor(QColor(222, 0, 0, 222))
+        pen.setWidth(0.1)
         painter.setPen(pen)
+
+        painter.drawLine(-1000, 0, 1000, 0)
+        painter.drawLine(0, -1000, 0, 1000)
+
+        # Draw mouse selection box
 
         painter.setBrush(Qt.NoBrush)
         painter.resetTransform()
 
         if self.selecting:
+            pen = QPen(Qt.DashLine)
+            pen.setColor(QColor(0, 0, 0, 255))
+            pen.setWidth(0.1)
+            painter.setPen(pen)
+
             painter.drawRect(self.selectBox0.x(), self.selectBox0.y(), self.selectBox1.x() - self.selectBox0.x(),
                              self.selectBox1.y() - self.selectBox0.y())
 

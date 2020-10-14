@@ -4,6 +4,7 @@ from PySide2.QtWidgets import QWidget, QHBoxLayout
 
 import TextureMgr
 from Editor import LibraryEditor
+from SpriteAnim import LibraryItem
 from SpriteAnim.Library import Library
 
 
@@ -18,13 +19,8 @@ class LibraryList(QWidget):
         # Row height
         self.ch = 20
 
-    def paintLibraryItem(self, painter, item, y, selected):
-        txt = "???"
-        if item.type == Library.ITEM_TEXTURE:
-            txt = item.texturePath
-
-        if item.type == Library.ITEM_SYMBOL:
-            txt = item.sym.name
+    def paintLibraryItem(self, painter, item: LibraryItem, y, selected):
+        txt = item.get_name()
 
         painter.setPen(Qt.NoPen)
         if selected:
@@ -54,7 +50,7 @@ class LibraryList(QWidget):
         # render all the entries. Make this code modular so it can do the same thing without the scrollarea
         y = 0
         cnt = 0
-        for i in self.library_editor.get_library().items:
+        for i in self.library_editor.get_library().item_list():
             self.paintLibraryItem(painter, i, y, cnt == self.library_editor.selected_index)
             y = y + self.ch
             cnt = cnt + 1
@@ -67,20 +63,13 @@ class LibraryList(QWidget):
     def mousePressEvent(self, event):
         print("mouse press ", event.pos().x(), event.pos().y())
         self.library_editor.set_selected_index(int(event.pos().y() / self.ch))
-
-
-
-
+        library_item = self.library_editor.selected_item()
 
         drag = QDrag(self)
-        # drag.setDragCursor()
-        mimeData = QMimeData()
-        # mimeData.setText("test")
-        mime_data = self.library_editor.selected_item().getMimeString()
-        b = bytearray()
-        b.extend(map(ord, mime_data))
-        mimeData.setData("application/x-qt-ampedit-mime", b)
-        drag.setMimeData(mimeData)
+        mime_data = QMimeData()
+        mime_data.setData(library_item.getMimeType(), library_item.getMimeData())
+        print("mime data: ", library_item.getMimeType(), mime_data.data(library_item.getMimeType()))
+        drag.setMimeData(mime_data)
         drag.start()
 
     def refresh_view(self):

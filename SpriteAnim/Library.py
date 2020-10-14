@@ -1,26 +1,38 @@
+from uuid import uuid4
+
+from SpriteAnim import LibraryItem
+
+
 class Library:
     
     # The library can store the following things:
     #  Symbols
     #  Linked symbols
     #  Textures
-    
-    ITEM_NONE = 0
-    ITEM_SYMBOL = 1
-    ITEM_LINKED_SYMBOL = 2
-    ITEM_TEXTURE = 3
-    
+
     def __init__(self):
-        self.items = []
+        self.__items = {}
+        self.__item_list = []
+
         print("Library init")
 
+    def item_for_index(self, index):
+        return self.__item_list[index]
+
+    def item_for_uuid(self, uuid: uuid4):
+        return self.__items[uuid]
+
     # Add an item. Can be called during importing, or loading, etc.
-    def addItem(self,  item):
-        self.items.append(item)
+    def addItem(self,  item: LibraryItem):
+        self.__items[item.uuid] = item
+        self.__item_list.append(item)
+
+        #self.items.append(item)
 
     def removeItem(self,  item):
-        self.items.remove(item)
-        
+        self.__items.pop(item.uuid)
+        self.__item_list.remove(item)
+
     # Save/load this to file
     def save(self):
         print("Saving...")
@@ -30,39 +42,5 @@ class Library:
     def load(self):
         print("Loading...")
 
-
-class LibraryItem:
-    def __init__(self):
-        self.type = Library.ITEM_NONE
-        self.mimeString = "none,none"
-
-    def is_texture(self):
-        return self.type == Library.ITEM_TEXTURE
-
-    def is_symbol(self):
-        return self.type == Library.ITEM_SYMBOL
-
-    # Embedded symbol
-    def setAsSymbol(self,  sym):
-        self.sym = sym
-        self.type = Library.ITEM_SYMBOL
-        
-    # A texture. The library does not have to store the actual data. Use texture manager for this.
-    def setAsTexture(self, path):
-        self.texturePath = path
-        self.type = Library.ITEM_TEXTURE
-        
-    def setAsLinkedSymbol(self,  path):
-        self.path = path
-        self.type = Library.LINKED_SYMBOL
-        
-    def getMimeString(self):
-        if self.type == Library.ITEM_SYMBOL:
-            self.mimeString = "symbol," + self.sym.name
-        elif self.type == Library.ITEM_TEXTURE:
-            self.mimeString = "texture," + self.texturePath
-        elif self.type == Library.LINKED_SYMBOL:
-            self.mimeString = "linkedsymbol," + self.path
-        
-        return self.mimeString
-        
+    def item_list(self):
+        return self.__item_list

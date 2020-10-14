@@ -4,7 +4,7 @@ from PySide2.QtCore import QRect
 
 from Editor import Editor
 from SpriteAnim.Frame import Frame
-from SpriteAnim.Library import LibraryItem
+from SpriteAnim.LibraryItem import LibraryItem
 from SpriteAnim.Symbol import Symbol
 
 

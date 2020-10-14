@@ -1,7 +1,10 @@
+from uuid import uuid4, UUID
+
 from PySide2.QtCore import Qt, QRect
 from PySide2.QtGui import QMovie
 
 from Editor import Editor
+from SpriteAnim.LibraryItem import TextureLibraryItem, SymbolLibraryItem
 from Views.StageCanvas import *
 
 
@@ -15,8 +18,11 @@ class StageView(StageCanvas):
         # Set externally
         self.framesView = None
 
+        # Mouse drag delta, in world coords
+        self.dragDeltaWorld = QPointF(0, 0)
+
         print("init", self.parent)
-#        self.movie = QMovie('../sonic3.gif')
+        #        self.movie = QMovie('../sonic3.gif')
         self.setMinimumWidth(640)
         # if self.movie.isValid():
         #     print("Is valid movie ", self.movie.frameCount())
@@ -28,8 +34,6 @@ class StageView(StageCanvas):
         #     self.movie.jumpToNextFrame()
         #
         # self.pm2 = QPixmap(self.movie.currentPixmap())
-
-
 
         self.setAcceptDrops(True)
         self.isDragging = False
@@ -58,6 +62,7 @@ class StageView(StageCanvas):
 
             if symbol.numDragItems() > 0:
                 startDragging = False
+                self.dragDeltaWorld = QPointF(0, 0)
                 self.initialDragPoint = self.translateMousePoint(event.pos())
                 for i in symbol.dragItems:
                     # if i's bounding box contains the mouse point, then we are now dragging the selected items
@@ -75,22 +80,21 @@ class StageView(StageCanvas):
                 symbol.clearDragItems()
 
                 self.selecting = True
-                self.select0 = QPointF(event.pos().x(),  event.pos().y())
-                self.select1 = QPointF(event.pos().x(),  event.pos().y())
+                self.select0 = QPointF(event.pos().x(), event.pos().y())
+                self.select1 = QPointF(event.pos().x(), event.pos().y())
                 self.updateSelectionBox()
 
             self.repaint()
 
-    def mouseReleaseEvent(self,  event):
+    def mouseReleaseEvent(self, event):
 
         if self.isDragging:
             for i in self.get_symbol().dragItems:
                 # modify the respective frames!
                 i.stopDragging()
 
-            delta = self.translateMousePoint(event.pos()) - self.initialDragPoint
-
-            self.editor.change_multiple_frame_offsets_action(delta)
+            self.editor.change_multiple_frame_offsets_action(
+                QPoint(int(self.dragDeltaWorld.x()), int(self.dragDeltaWorld.y())))
 
             self.isDragging = False
 
@@ -104,17 +108,22 @@ class StageView(StageCanvas):
             ox = sw / 2 + self.camera.x()
             oy = sh / 2 + self.camera.y()
 
-            p0 = QPoint(self.selectBox0.x() - ox,  self.selectBox0.y() - oy)
-            p1 = QPoint(self.selectBox1.x() - ox,  self.selectBox1.y() - oy)
+            p0 = QPoint(self.selectBox0.x() - ox, self.selectBox0.y() - oy)
+            p1 = QPoint(self.selectBox1.x() - ox, self.selectBox1.y() - oy)
             print(p0, p1)
             self.selectSymbols(QRect(p0, p1))
 
         self.repaint()
 
-    def mouse_move(self, delta, event):
+    def mouse_move(self, delta: QPoint, event):
+
         if self.isDragging:
+            self.dragDeltaWorld += QPointF(delta.x() / self.zoom, delta.y() / self.zoom)
+            # print("deltaworld: ", self.dragDeltaWorld)
+            # print("mouse_move:", delta, delta / self.zoom, self.dragDeltaWorld)
+
             for i in self.get_symbol().dragItems:
-                i.dragDelta(delta)
+                i.set_temp_offset(int(self.dragDeltaWorld.x()), int(self.dragDeltaWorld.y()))
 
         if self.selecting:
             self.select1 = event.pos()
@@ -134,36 +143,54 @@ class StageView(StageCanvas):
 
         for l in symbol.layers:
             frame = l.getFrame(f)
-            if frame == None:
+            if frame is None:
                 continue
 
             bb = frame.boundingBox()
-            if bb == None: continue
+            if bb is None:
+                continue
+
             print("Checking for frames in bounding box ", rect, bb)
             if bb.intersects(rect):
                 print("intersects!")
                 frame.setSelected(1)
                 symbol.addDragItem(frame)
 
-            #self.symbol.drawFrame( f,  painter );
+            # self.symbol.drawFrame( f,  painter );
 
     def dragEnterEvent(self, event):
-        data = event.mimeData().data("application/x-qt-ampedit-mime")
+        data = event.mimeData().data("application/x-qt-ampedit-mime-symbol")
+        if data is not None:
+            event.acceptProposedAction()
+
+        data = event.mimeData().data("application/x-qt-ampedit-mime-texture")
         if data is not None:
             event.acceptProposedAction()
 
     def dropEvent(self, event):
-        print("drop event")
-        data = event.mimeData().data("application/x-qt-ampedit-mime")
-        params = data.split(",")
-        #print params[0],
-        if params[0] == 'texture':
-            self.editor.set_frame_texture_action(str(params[1], 'utf-8'))
-            # so... get current frame, put this file into it?
-            #frame = self.symbol.layers []
-            #print "dropping ",  params[1]
+        mime_data = event.mimeData()
 
-        #print event.mimeData().formats()
+        data = mime_data.data("application/x-qt-ampedit-mime-texture")
+        if data is not None and len(data) > 0:
+            print("Drop texture...", len(data), data)
+            item_uuid = UUID(bytes=bytes(data), version=4)
+            print("insert...", item_uuid)
+
+            tex_item: TextureLibraryItem
+            tex_item = self.editor.current_library().item_for_uuid(item_uuid)
+            self.editor.set_frame_texture_action(texture_path=tex_item.texture_path)
+            return
+
+        data = event.mimeData().data("application/x-qt-ampedit-mime-symbol")
+        if data is not None and len(data) > 0:
+            item_uuid = UUID(bytes=bytes(data), version=4)
+            print("Drop symbol...", item_uuid, len(data), data)
+            symbol_item: SymbolLibraryItem
+            symbol_item = self.editor.current_library().item_for_uuid(item_uuid)
+            print(symbol_item)
+
+            self.editor.set_frame_symbol_action(item=symbol_item)
+            return
 
     def frame_number(self):
         return self.editor.frame_number()
@@ -177,4 +204,4 @@ class StageView(StageCanvas):
             # What's selected?
             # self.symbol.
             # frame = self.symbol.
-            painter.drawText(50, 70, "*SYMBOL**** {}".format(self.frame_number()))
+            painter.drawText(50, 70, "*SYMBOL* {}".format(self.frame_number()))

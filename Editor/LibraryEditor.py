@@ -1,5 +1,6 @@
 from Editor import Editor
-from SpriteAnim.Library import Library, LibraryItem
+from SpriteAnim.Library import Library
+from SpriteAnim.LibraryItem import LibraryItem
 from Views.Library import LibraryWindow
 
 
@@ -18,7 +19,7 @@ class LibraryEditor:
         self.view = view
 
     def set_selected_index(self, new_index):
-        if new_index < len(self.get_library().items):
+        if new_index < len(self.get_library().item_list()):
             self.selected_index = new_index
 
             # item = self.get_library().items[self.selected_index]
@@ -35,4 +36,5 @@ class LibraryEditor:
         return self.editor.current_library()
 
     def selected_item(self) -> LibraryItem:
-        return self.get_library().items[self.selected_index]
+        return self.get_library().item_list()[self.selected_index]
+

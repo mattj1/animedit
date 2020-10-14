@@ -1,12 +1,14 @@
-from PySide2.QtCore import QRect
+import xml.etree.ElementTree as ET
+
+from PySide2.QtCore import QRect, QPoint
 
 from Editor.Actions.Action import AddLayerAction, Action, ConvertKeyframeAction, InsertFrameAction, ClearKeyframeAction
-from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets
+from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets, SetFrameSymbolAction
 from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction
 from Editor.LibraryEditor import LibraryEditor
 from SpriteAnim import Symbol, RootSymbol
-from SpriteAnim.Frame import Frame
-from SpriteAnim.Library import LibraryItem, Library
+from SpriteAnim.Library import Library
+from SpriteAnim.LibraryItem import LibraryItem, SymbolLibraryItem, TextureLibraryItem
 from Views.MainWindow import MainWindow
 
 
@@ -51,18 +53,24 @@ class Editor:
         self.redoActions.clear()
 
         # test: add some test data to the library
-        item = LibraryItem()
-        item.setAsTexture("testimages/player.png")
+        item = TextureLibraryItem("testimages/player.png")
         self.root_symbol.library.addItem(item)
-        item = LibraryItem()
-        item.setAsTexture("testimages/rock.png")
+        item = TextureLibraryItem("testimages/rock.png")
         self.root_symbol.library.addItem(item)
 
-        #item = LibraryItem()
-        #testSymbol = Symbol()
-        #testSymbol.name = "Test Symbol"
-        #item.setAsSymbol(testSymbol)
-        #self.root_symbol.library.addItem(item)
+        tree = ET.parse("testimages/smokepuff.xml")
+        library = tree.getroot()
+        rootsymbol = library.find("rootsymbol")
+        ts = Symbol.from_xml(rootsymbol)
+
+        item = SymbolLibraryItem(ts)
+        self.root_symbol.library.addItem(item)
+
+        # item = LibraryItem()
+        # testSymbol = Symbol()
+        # testSymbol.name = "Test Symbol"
+        # item.setAsSymbol(testSymbol)
+        # self.root_symbol.library.addItem(item)
 
         self.view.refresh_view()
 
@@ -154,7 +162,7 @@ class Editor:
 
     def set_frame_texture_action(self, texture_path: str):
 
-        if self.current_symbol().getFrame(self.current_layer, self.frame_number()) == None:
+        if self.current_symbol().getFrame(self.current_layer, self.frame_number()) is None:
             return
 
         key_frame_number = self.current_symbol().layers[self.current_layer].keyframeForFrame(self.current_frame)
@@ -165,14 +173,22 @@ class Editor:
         # frame = self.curSymbol.getFrame( self.layerView.selectedLayer,  self.framesView.curFrame )
         # print "setting ",  texturePath
         # frame.setTexure( texturePath.data() )
-        # self.curSymbol.layers[self.layerView.selectedLayer].updateFrameNumbers()
+        # self.curSymbol.layers[self.layerView.selectedLayer].updateFrames()
 
-        self.view.refresh_view()
+    def set_frame_symbol_action(self, item: SymbolLibraryItem):
+
+        if self.current_symbol().getFrame(self.current_layer, self.frame_number()) is None:
+            return
+
+        key_frame_number = self.current_symbol().layers[self.current_layer].keyframeForFrame(self.current_frame)
+
+        self.run_action(
+            SetFrameSymbolAction(self.current_symbol(), item, self.current_layer, key_frame_number))
 
     def add_layer_action(self):
         self.run_action(AddLayerAction(self.current_symbol(), self.layer_index(), self.selected_frame_range))
 
-    def change_multiple_frame_offsets_action(self, delta):
+    def change_multiple_frame_offsets_action(self, delta: QPoint):
         self.run_action(ChangeMultipleFrameOffsets(self.current_symbol(), self.current_symbol().dragItems, delta))
 
     def clear_keyframe_action(self):
@@ -192,12 +208,13 @@ class Editor:
         print("selected: ", selected_frames)
 
         self.run_action(SelectFramesAction(self.current_symbol(),
-                                           selected_frames,             # New
-                                           self.selected_frame_range,    # Current
+                                           selected_frames,  # New
+                                           self.selected_frame_range,  # Current
                                            layerNo, self.layer_index()))
 
     def select_layer_action(self, layer_index):
-        self.run_action(SelectLayerAction(self.current_symbol(), layer_index, self.layer_index(), self.selected_frame_range))
+        self.run_action(
+            SelectLayerAction(self.current_symbol(), layer_index, self.layer_index(), self.selected_frame_range))
 
     def clear_selected_frame_range_action(self):
         if self.selected_frame_range.x() != -1:

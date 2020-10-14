@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<library>
+  
+  <rootsymbol name="smokepuff">
+    
+    <layer name ="Layer 0">
+      <keyframe n = "0" contentType="texture" path="testimages/smokepuff0000.png" x="-10" y="-19" />
+      <keyframe n = "2" contentType="texture" path="testimages/smokepuff0001.png" x="-10" y="-19" />
+      <keyframe n = "4" contentType="texture" path="testimages/smokepuff0002.png" x="-10" y="-19" />
+      <keyframe n = "6" contentType="texture" path="testimages/smokepuff0003.png" x="-10" y="-19" />
+      <keyframe n = "8" contentType="texture" path="testimages/smokepuff0004.png" x="-10" y="-19" />
+      <keyframe n = "10" contentType="texture" path="testimages/smokepuff0005.png" x="-10" y="-19" />
+      <keyframe n = "12" contentType="texture" path="testimages/smokepuff0006.png" x="-10" y="-19" />
+      <keyframe n = "14" contentType="texture" path="testimages/smokepuff0007.png" x="-10" y="-19" />
+      <keyframe n = "16" contentType="texture" path="testimages/smokepuff0008.png" x="-10" y="-19" />
+      <keyframe n = "18" contentType="texture" path="testimages/smokepuff0009.png" x="-10" y="-19" />
+      <keyframe n = "20" contentType="texture" path="testimages/smokepuff0010.png" x="-10" y="-19" />
+      <frame n ="22"/>
+    </layer>
+    
+  
+  </rootsymbol>
+</library>
