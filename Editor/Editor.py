@@ -4,7 +4,8 @@ from PySide2.QtCore import QRect, QPoint
 
 from Editor.Actions.Action import AddLayerAction, Action, ConvertKeyframeAction, InsertFrameAction, ClearKeyframeAction
 from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets, SetFrameSymbolAction
-from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction
+from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction, \
+    ChangeSelectionAction
 from Editor.LibraryEditor import LibraryEditor
 from SpriteAnim import Symbol, RootSymbol
 from SpriteAnim.Library import Library
@@ -77,10 +78,13 @@ class Editor:
     # Undo/redo
     def run_action(self, action: Action):
         action.editor_frame = self.current_frame
-        # action.editor_layer = self.layerView.selectedLayer
+        action.editor_layer = self.current_layer
+        action.symbol = self.current_symbol()
+
         # print "run: layer: ",  action.editor_layer
 
         self.actions.append(action)
+        self.redoActions.clear()
         action.redo(self)
         self.view.refresh_view()
 
@@ -132,11 +136,11 @@ class Editor:
         self.current_layer = layer_idx
         self.view.refresh_view()
 
-    def set_frame_number(self, frame_number):
-
+    # Get the bounded frame number (prevent <0 or >max frames)
+    def adjusted_frame_number_for_frame_number(self, frame_number) -> int:
         # print("set_frame_number: {}".format(frame_number))
         if frame_number < 0:
-            return
+            return 0
 
         sym = self.current_symbol()
 
@@ -146,8 +150,10 @@ class Editor:
         if frame_number < 0:
             frame_number = 0
 
-        self.current_frame = frame_number
+        return frame_number
 
+    def set_frame_number(self, frame_number):
+        self.current_frame = self.adjusted_frame_number_for_frame_number(frame_number)
         self.view.refresh_view()
 
     def set_selected_frame_range(self, symbol, selected):
@@ -191,6 +197,26 @@ class Editor:
     def change_multiple_frame_offsets_action(self, delta: QPoint):
         self.run_action(ChangeMultipleFrameOffsets(self.current_symbol(), self.current_symbol().dragItems, delta))
 
+    def change_selection_action(self, frame_number: int, append: bool):
+        frame_number = self.adjusted_frame_number_for_frame_number(frame_number)
+
+        # if the selection and frame number haven't changed, do nothing.
+        # (can happen during draggin
+        if frame_number == self.frame_number():
+            return
+
+        if append and len(self.actions) > 0:
+            last_action = self.actions[-1]
+            if isinstance(last_action, ChangeSelectionAction):
+                # print("Is appending Change Selection")
+                last_action.frame_number = frame_number
+                last_action.redo(self)
+                self.view.refresh_view()
+                return
+
+        action = ChangeSelectionAction(frame_number)
+        self.run_action(action)
+
     def clear_keyframe_action(self):
         if self.selected_frame_range.x() != -1:
             self.run_action(ClearKeyframeAction(self.current_symbol(), self.selected_frame_range))
@@ -216,6 +242,3 @@ class Editor:
         self.run_action(
             SelectLayerAction(self.current_symbol(), layer_index, self.layer_index(), self.selected_frame_range))
 
-    def clear_selected_frame_range_action(self):
-        if self.selected_frame_range.x() != -1:
-            self.run_action(ClearSelectionAction(self.current_symbol(), self.selected_frame_range))

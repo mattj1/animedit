@@ -15,7 +15,7 @@ class Symbol:
     def __init__(self):
         print("Symbol init")
 
-        self.layers = []
+        self.layers: [Layer] = []
         self.totalFrames = 0
         self.name = "Symbol"
 

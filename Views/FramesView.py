@@ -1,14 +1,18 @@
 import math
 
 from PySide2.QtCore import QPoint, QRect, Qt, QRectF
-from PySide2.QtGui import QImage, QPixmap, QPainter, QColor, QPen
-from PySide2.QtWidgets import QWidget
+from PySide2.QtGui import QImage, QPixmap, QPainter, QColor, QPen, QBrush
+from PySide2.QtWidgets import QWidget, QMenu, QAction
 
 from Editor import Editor
 from SpriteAnim.Frame import Frame
 
 
 class FramesView(QWidget):
+    DRAG_OP_NONE = 0
+    DRAG_OP_SCRUB = 1
+    DRAG_OP_SELECT = 2
+
     def __init__(self, editor: Editor, parent=None):
         super(FramesView, self).__init__(parent)
 
@@ -21,8 +25,6 @@ class FramesView(QWidget):
 
         self.parent = parent
 
-        self.selectingFrames = 0
-
         # actual mouse select points
         self.select0 = QPoint(0, 0)
         self.select1 = QPoint(0, 0)
@@ -30,6 +32,8 @@ class FramesView(QWidget):
         # selection box rendering - draw if self.selectingFrames
         self.selectBox0 = QPoint(0, 0)
         self.selectBox1 = QPoint(0, 0)
+
+        self.drag_operation = FramesView.DRAG_OP_NONE
 
     def top_layer(self):
         return self.editor.top_layer
@@ -121,12 +125,20 @@ class FramesView(QWidget):
                 if f < sym.layers[l].numFrames():
                     frame = sym.layers[l].frames[f]
 
+                    next_frame: Frame = sym.layers[l].get_frame(f + 1)
+
+                    content_type_ends = False
+
+                    if next_frame:
+                        if not next_frame.is_same_content_as_frame(frame):
+                            content_type_ends = True
+
                     # also, figure out the color if the frame is selected
                     # print "Drawing contentType ",  frame.contentType
                     if frame.contentType == Frame.CONTENT_EMPTY:
                         fill = QColor(255, 255, 255, 255)
                     else:
-                        fill = frameColor;
+                        fill = frameColor
 
                     if frame.type == Frame.TYPE_KEY:
                         painter.setBrush(fill)
@@ -162,6 +174,15 @@ class FramesView(QWidget):
                         painter.setPen(keyframePen)
                         painter.drawLine(cx + cw, cy, cx + cw, cy + ch)
 
+                    if content_type_ends and frame.type == Frame.TYPE_FRAME:
+                        painter.setBrush(QColor.fromRgb(255, 255, 255, 255))
+                        painter.setPen(keyframePen)
+                        brush = QBrush(QColor(255, 255, 255, 255))
+
+                        stop_rect = QRectF(cx + 2, cy + 7, 4, 6)
+                        painter.fillRect(stop_rect, brush)
+                        painter.drawRect(stop_rect)
+
                 if self.editor.selected_frame_range.contains(f, l):
                     painter.setBrush(QColor(0, 0, 255, 127))
                     painter.drawRect(x * cw, tTop + y * ch, cw, ch)
@@ -173,7 +194,7 @@ class FramesView(QWidget):
         framesRect = QRect(self.leftFrame, topLayer, numCol - self.leftFrame, numRow - topLayer)
 
         # draw mouse selection box
-        if self.selectingFrames:
+        if self.drag_operation == FramesView.DRAG_OP_SELECT:
             selectRect = QRect(self.selectBox0.x(), self.selectBox0.y(), self.selectBox1.x() - self.selectBox0.x() + 1,
                                self.selectBox1.y() - self.selectBox0.y() + 1)
 
@@ -221,71 +242,81 @@ class FramesView(QWidget):
 
         return _layer_no
 
+    def frame_number_at_pixel_x(self, x):
+        return int(self.leftFrame + (x - (x % 8)) / 8)
+
     def mousePressEvent(self, event):
         x = event.pos().x()
         y = event.pos().y()
-        deselect = False
 
-        self.setFrameEvent(self.leftFrame + (x - (x % 8)) / 8)
+        if event.button() == Qt.MouseButton.LeftButton and y < self.topHeight:
+            self.drag_operation = FramesView.DRAG_OP_SCRUB
+            self.editor.change_selection_action(self.frame_number_at_pixel_x(x), append=False)
+            return
 
-        # if( y < self.topHeight):
-        #    self.setFrameEvent(self.leftFrame + (x - (x%8))/8)
-        # else:
         if y >= self.topHeight:
-
-            sym = self.editor.current_symbol()
+            self.drag_operation = FramesView.DRAG_OP_SELECT
 
             layerNo = int(self.pixelToLayerNo(y - self.topHeight))
 
-            if layerNo >= sym.numLayers():
-                # layerNo = sym.numLayers() - 1;
-                deselect = True
-            else:
-                self.selectingFrames = 1
-                self.select0.setX(self.pixelToFrameNo(x))
-                self.select1.setX(self.select0.x())
+            self.select0.setX(self.pixelToFrameNo(x))
+            self.select1.setX(self.select0.x())
 
-                self.select0.setY(layerNo)
-                self.select1.setY(self.select0.y())
+            self.select0.setY(layerNo)
+            self.select1.setY(self.select0.y())
 
-                self.updateSelectionBox()
-                self.repaint()
-        else:
-            deselect = True
+            self.updateSelectionBox()
+            self.repaint()
 
-        if deselect:
-            self.editor.clear_selected_frame_range_action()
+    def action_create_motion_tween(self):
+        return
 
     def mouseReleaseEvent(self, event):
         x = event.pos().x()
         y = event.pos().y()
 
-        if self.selectingFrames == 1:
-            sym = self.editor.current_symbol()
+        if event.button() == Qt.MouseButton.RightButton:
+            # Maybe select the frame under the cursor?
+            menu = QMenu(self)
+            menu.addAction(QAction("Create &Motion Tween", self, statusTip="Create Motion Tween", triggered=self.action_create_motion_tween))
+            menu.exec_(self.mapToGlobal(event.pos()))
+            return
 
-            if self.selectBox1.y() < 0:
-                self.selectBox1.setY(0)
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.drag_operation == FramesView.DRAG_OP_SCRUB:
+                self.editor.change_selection_action(self.frame_number_at_pixel_x(x), append=True)
 
-            selected_frames = QRect(self.selectBox0.x(), self.selectBox0.y(),
-                                    self.selectBox1.x() - self.selectBox0.x() + 1,
-                                    self.selectBox1.y() - self.selectBox0.y() + 1)
+            if self.drag_operation == FramesView.DRAG_OP_SELECT:
+                sym = self.editor.current_symbol()
 
-            layerNo = int(self.pixelToLayerNo(y - self.topHeight))
-            if layerNo >= sym.numLayers():
-                layerNo = sym.numLayers() - 1
+                if self.selectBox1.y() < 0:
+                    self.selectBox1.setY(0)
 
-            # self.parent.setSelectedLayer( layerNo )
+                selected_frames = QRect(self.selectBox0.x(), self.selectBox0.y(),
+                                        self.selectBox1.x() - self.selectBox0.x() + 1,
+                                        self.selectBox1.y() - self.selectBox0.y() + 1)
 
-            self.editor.select_frames_action(selected_frames, layerNo)
+                layerNo = int(self.pixelToLayerNo(y - self.topHeight))
+                if layerNo >= sym.numLayers():
+                    layerNo = sym.numLayers() - 1
 
-            self.selectingFrames = 0
-            self.repaint()
+                # self.parent.setSelectedLayer( layerNo )
+
+                # TODO: The current frame and layer should be updated here
+                self.editor.select_frames_action(selected_frames, layerNo)
+
+                self.repaint()
+
+            self.drag_operation = FramesView.DRAG_OP_NONE
 
     def mouseMoveEvent(self, event):
         x = event.pos().x()
         y = event.pos().y()
 
-        if self.selectingFrames == 1:
+        if self.drag_operation == FramesView.DRAG_OP_SCRUB:
+            self.editor.change_selection_action(self.frame_number_at_pixel_x(x), append=True)
+
+        if self.drag_operation == FramesView.DRAG_OP_SELECT:
             # update the selection
 
             sym = self.editor.current_symbol()
@@ -300,7 +331,6 @@ class FramesView(QWidget):
             self.updateSelectionBox()
             self.repaint()
 
-        self.setFrameEvent(self.leftFrame + (x - (x % 8)) / 8)
 
     def setFrameEvent(self, f):
         self.editor.set_frame_number(int(f))

@@ -7,6 +7,7 @@ from PySide2.QtCore import QPoint
 
 from Editor import Editor
 from Editor.Actions.Action import Action
+from SpriteAnim.Frame import Frame
 from SpriteAnim.LibraryItem import SymbolLibraryItem
 
 
@@ -66,6 +67,9 @@ class ChangeOffsetAction(Action):
         self.frameNo = frameNo
         self.oldOffs = oldOffs
         self.newOffs = newOffs
+
+    def getFrame(self) -> Frame:
+        return self.symbol.getFrame(self.layerNo, self.frameNo)
 
     def redo(self, editor):
         f = self.getFrame()

@@ -4,6 +4,7 @@ from PySide2.QtCore import Qt, QRect
 from PySide2.QtGui import QMovie
 
 from Editor import Editor
+from SpriteAnim.Frame import Frame
 from SpriteAnim.LibraryItem import TextureLibraryItem, SymbolLibraryItem
 from Views.StageCanvas import *
 
@@ -111,7 +112,7 @@ class StageView(StageCanvas):
             p0 = QPoint(self.selectBox0.x() - ox, self.selectBox0.y() - oy)
             p1 = QPoint(self.selectBox1.x() - ox, self.selectBox1.y() - oy)
             print(p0, p1)
-            self.selectSymbols(QRect(p0, p1))
+            self.select_frames(QRect(p0, p1))
 
         self.repaint()
 
@@ -131,19 +132,19 @@ class StageView(StageCanvas):
 
         self.repaint()
 
-    def selectSymbols(self, rect):
-
-        # go through all the layers for this frame
-
-        # check if this frame intersects this box
-
-        f = self.frame_number()
-
+    def get_selectable_frames_in_rect(self, rect, only_keyframes=True) -> [Frame]:
+        frames = []
         symbol = self.get_symbol()
 
-        for l in symbol.layers:
-            frame = l.getFrame(f)
+        # Find selectable frame content in this box
+
+        # go through all the layers for this frame
+        for layer in symbol.layers:
+            frame = layer.getFrame(self.frame_number())
             if frame is None:
+                continue
+
+            if only_keyframes and not frame.isKey():
                 continue
 
             bb = frame.boundingBox()
@@ -152,9 +153,20 @@ class StageView(StageCanvas):
 
             print("Checking for frames in bounding box ", rect, bb)
             if bb.intersects(rect):
+                frames.append(frame)
                 print("intersects!")
-                frame.setSelected(1)
-                symbol.addDragItem(frame)
+
+        return frames
+
+    def select_frames(self, rect):
+
+        frames = self.get_selectable_frames_in_rect(rect)
+
+        symbol = self.get_symbol()
+
+        for frame in frames:
+            frame.setSelected(True)
+            symbol.addDragItem(frame)
 
             # self.symbol.drawFrame( f,  painter );
 

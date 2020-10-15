@@ -6,6 +6,20 @@ from PySide2.QtCore import QRect
 from Editor.Actions.Action import Action
 
 
+class ChangeSelectionAction(Action):
+
+    def __init__(self, frame_number: int):
+        super(ChangeSelectionAction, self).__init__()
+
+        self.frame_number = frame_number
+
+    def redo(self, editor):
+        editor.set_frame_number(self.frame_number)
+
+    def undo(self, editor):
+        super().undo(editor)
+
+
 class SelectFramesAction(Action):
     def __init__(self, symbol, selected, prevSelected, layerNo, prevLayerNo):
         super(SelectFramesAction, self).__init__()

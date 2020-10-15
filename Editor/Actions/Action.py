@@ -9,23 +9,36 @@ from SpriteAnim.Symbol import Symbol
 
 
 class Action(object):
-    def __init__(self):
-        self.symbol = None
-        self.layerNo = None
-        self.frameNo = None
+    # Set after the action is instantiated
 
+    # Editor state before the action
+    prev_editor_frame: int
+    prev_editor_layer: int
+
+    # Selection...
+
+
+    # Symbol we're editing
+    symbol: Symbol
+
+    def __init__(self):
+
+        self.prev_editor_frame = 0
+        self.prev_editor_frame = 0
         print("new action")
 
     @abstractmethod
     def undo(self, editor: Editor):
-        print("undo")
+        print("Action.undo")
+        editor.set_frame_number(self.prev_editor_frame)
 
     @abstractmethod
     def redo(self, editor: Editor):
-        print("redo")
+        print("Action.redo")
+
 
     def getFrame(self) -> Frame:
-        return self.symbol.getFrame(self.layerNo, self.frameNo)
+        return self.symbol.getFrame(self.layerNo, self.editor_frame)
 
 
 class AddLayerAction(Action):

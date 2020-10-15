@@ -98,8 +98,8 @@ class Layer:
                 else:
                     symbol_frame = 0
 
-            if f.symbol_frame != -1:
-                symbol_frame = f.symbol_frame
+                if f.symbol_frame != -1:
+                    symbol_frame = f.symbol_frame
 
             if f.contentType == Frame.CONTENT_SYMBOL:
                 if symbol_frame >= f.symbol.totalFrames:
@@ -187,3 +187,9 @@ class Layer:
             cur_frame = frame_no
 
         print("total frames: {}".format(len(self.frames)))
+
+    def get_frame(self, frame_number: int) -> Frame:
+        if frame_number >= len(self.frames):
+            return None
+
+        return self.frames[frame_number]
