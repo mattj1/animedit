@@ -183,8 +183,8 @@ class Frame:
             painter.setBrush(Qt.NoBrush)
 
             bb = self.boundingBox()
-
-            painter.drawRect(bb)
+            if bb:
+                painter.drawRect(bb)
 
         # frame = sym.layers[0].frames[f];
 

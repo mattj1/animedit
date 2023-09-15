@@ -2,15 +2,17 @@ import xml.etree.ElementTree as ET
 
 from PySide2.QtCore import QRect, QPoint
 
-from Editor.Actions.Action import AddLayerAction, Action, ConvertKeyframeAction, InsertFrameAction, ClearKeyframeAction
+from Editor.Actions.Action import Action, ConvertKeyframeAction, InsertFrameAction, ClearKeyframeAction
 from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets, SetFrameSymbolAction
+from Editor.Actions.LayerActions import AddLayerAction
 from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction, \
     ChangeSelectionAction
 from Editor.LibraryEditor import LibraryEditor
+from Editor.Selection import FrameRef
 from SpriteAnim import Symbol, RootSymbol
 from SpriteAnim.Library import Library
 from SpriteAnim.LibraryItem import LibraryItem, SymbolLibraryItem, TextureLibraryItem
-from Views.MainWindow import MainWindow
+from Views.MainWindow import MainWindow, Frame
 
 
 class Editor:
@@ -31,11 +33,10 @@ class Editor:
         self.redoActions = []
 
         # What we're editing (document). Contains the Library.
-        self.root_symbol = RootSymbol()
+        self.root_symbol: RootSymbol = RootSymbol()
+        self.cur_symbol = self.root_symbol.symbol
 
-        # Rectangle representing selected frame range in the time line
-        # 0x0 for nothing, 1x1 for one frame
-        self.selected_frame_range = QRect(-1, -1, 0, 0)
+        self.selected_frames: [FrameRef] = []
 
     def set_view(self, view: MainWindow):
         self.view = view
@@ -46,7 +47,7 @@ class Editor:
         self.cur_symbol = Symbol()
         self.root_symbol.setSymbol(self.cur_symbol)
 
-        a = AddLayerAction(self.cur_symbol, 1, QRect(-1, -1, 0, 0))
+        a = AddLayerAction(self.cur_symbol, 1)
         self.run_action(a)
 
         # Can't undo the AddLayerAction
@@ -67,13 +68,20 @@ class Editor:
         item = SymbolLibraryItem(ts)
         self.root_symbol.library.addItem(item)
 
+        tree = ET.parse("testimages/movietest.xml")
+        library = tree.getroot()
+        rootsymbol = library.find("rootsymbol")
+        ts = Symbol.from_xml(rootsymbol)
         # item = LibraryItem()
         # testSymbol = Symbol()
         # testSymbol.name = "Test Symbol"
         # item.setAsSymbol(testSymbol)
         # self.root_symbol.library.addItem(item)
 
+        # self.root_symbol = ts
+        self.cur_symbol = ts
         self.view.refresh_view()
+
 
     # Undo/redo
     def run_action(self, action: Action):
@@ -121,7 +129,8 @@ class Editor:
         self.view.refresh_view()
 
     def current_symbol(self) -> Symbol:
-        return self.root_symbol.symbol
+        return self.cur_symbol
+        # return self.root_symbol.symbol
 
     def current_library(self) -> Library:
         return self.root_symbol.library
@@ -156,11 +165,32 @@ class Editor:
         self.current_frame = self.adjusted_frame_number_for_frame_number(frame_number)
         self.view.refresh_view()
 
-    def set_selected_frame_range(self, symbol, selected):
-        self.selected_frame_range = selected
+    def set_selected_frames(self, selected: [FrameRef]):
 
-    def clear_selected_frame_range(self, symbol):
-        self.selected_frame_range = QRect(-1, -1, 0, 0)
+        fr: FrameRef
+
+        # Unselect previous frames
+        for fr in self.selected_frames:
+            frame = self.current_symbol().getFrame(fr.layer_no, fr.frame_no)
+
+            if frame:
+                frame.setSelected(False)
+
+        print("set_selected_frames: ", selected)
+        self.selected_frames = selected
+
+        for fr in self.selected_frames:
+            frame = self.current_symbol().getFrame(fr.layer_no, fr.frame_no)
+
+            if frame:
+                frame.setSelected(True)
+
+    def is_frame_selected(self, layer_index, frame_index):
+        for fr in self.selected_frames:
+            if fr.layer_no == layer_index and fr.frame_no == frame_index:
+                return True
+
+        return False
 
     def set_top_layer(self, _top_layer):
         self.top_layer = _top_layer
@@ -228,17 +258,17 @@ class Editor:
     def insert_frame_action(self):
         self.run_action(InsertFrameAction(self.current_symbol(), self.selected_frame_range, self.frame_number()))
 
-    def select_frames_action(self, selected_frames, layerNo):
-        # selected_frames is the rectangle chosen in the timeline.
+    def select_frames_action(self, frames: [FrameRef]):
 
-        print("selected: ", selected_frames)
+
+        print("select_frames_action: ", frames)
 
         self.run_action(SelectFramesAction(self.current_symbol(),
-                                           selected_frames,  # New
-                                           self.selected_frame_range,  # Current
-                                           layerNo, self.layer_index()))
+                                           frames,  # New
+                                           self.selected_frames))  # Current
+
 
     def select_layer_action(self, layer_index):
         self.run_action(
-            SelectLayerAction(self.current_symbol(), layer_index, self.layer_index(), self.selected_frame_range))
+            SelectLayerAction(self.current_symbol(), layer_index, self.layer_index(), self.selected_frames))
 

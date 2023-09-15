@@ -19,7 +19,9 @@ class Layer:
         return len(self.frames)
 
     def getFrame(self, idx):
-        if idx >= self.numFrames(): return None
+        if idx >= self.numFrames():
+            return None
+
         return self.frames[idx]
 
     def appendFrame(self, f):
@@ -141,6 +143,7 @@ class Layer:
 
     def load_from_xml(self, node: Element):
         self.name = node.get("name")
+        print(f"Layer load_from_xml {self.name}")
 
         f: Element
         cur_frame = -1
@@ -167,11 +170,19 @@ class Layer:
 
             if f.tag == "keyframe":
 
+                print("content_type", content_type)
                 if content_type == "texture":
                     frame = Frame(frame_no, Frame.CONTENT_TEXTURE, frame_type=Frame.TYPE_KEY)
                     frame.texturePath = f.get("path")
                     frame.tex = TextureMgr.textureMgr().loadImage(frame.texturePath)
                     frame.srcRect = QRect(0, 0, frame.tex.width(), frame.tex.height())
+
+                if content_type == "symbol":
+                    frame = Frame(frame_no, Frame.CONTENT_SYMBOL, frame_type=Frame.TYPE_KEY)
+                    frame.symbol = None
+
+                    raise Exception("TODO: symbol content type")
+                    pass
 
                 offs_x = int(f.get("x"))
                 offs_y = int(f.get("y"))

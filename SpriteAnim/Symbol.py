@@ -37,7 +37,11 @@ class Symbol:
         return l
 
     def getFrame(self, layerNo, frameNo) -> Frame:
-        return self.layers[layerNo].getFrame(frameNo)
+        layer = self.getLayer(layerNo)
+        if layer:
+            return layer.get_frame(frameNo)
+
+        return None
 
     # insert layer before index idx
     def insertLayer(self, layer, idx):
@@ -45,6 +49,9 @@ class Symbol:
         self.updateLayers()
 
     def getLayer(self, idx):
+        if idx >= len(self.layers):
+            return None
+
         return self.layers[idx]
 
     # Remove layer from layers array
@@ -104,6 +111,7 @@ class Symbol:
 
     def load_from_xml(self, node: Element):
         self.name = node.get("name")
+        print(f'Symbol load_from_xml {self.name}')
 
         for n in node.iterfind("layer"):
             layer = Layer(self)

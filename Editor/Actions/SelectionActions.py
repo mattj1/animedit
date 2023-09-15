@@ -4,6 +4,7 @@
 from PySide2.QtCore import QRect
 
 from Editor.Actions.Action import Action
+from Editor.Selection import FrameRef
 
 
 class ChangeSelectionAction(Action):
@@ -21,22 +22,20 @@ class ChangeSelectionAction(Action):
 
 
 class SelectFramesAction(Action):
-    def __init__(self, symbol, selected, prevSelected, layerNo, prevLayerNo):
+    def __init__(self, symbol, selected: [FrameRef], prev_selected: [FrameRef]):
         super(SelectFramesAction, self).__init__()
 
         self.symbol = symbol
         self.selected = selected
-        self.prevSelected = prevSelected
-        self.layerNo = layerNo
-        self.prevLayerNo = prevLayerNo
+        self.prev_selected = prev_selected
 
     def redo(self, editor):
-        editor.set_selected_frame_range(self.symbol, self.selected)
-        editor.set_layer_index(self.layerNo)
+        editor.set_selected_frames(self.selected)
+        # editor.set_layer_index(self.layerNo)
 
     def undo(self, editor):
-        editor.set_layer_index(self.prevLayerNo)
-        editor.set_selected_frame_range(self.symbol, self.prevSelected)
+        # editor.set_layer_index(self.prevLayerNo)
+        editor.set_selected_frames(self.prev_selected)
 
 
 # clear frame selection - happens if user clicks on a part of framesview with no frames or the top time thing

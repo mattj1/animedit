@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QMainWindow, QVBoxLayout, QAction, QFrame, QScroll
 from Views.FramesView import *
 from Views.LayerListView import *
 from Views.Library.LibraryWindow import *
-from Editor.Actions.Action import AddLayerAction, ConvertKeyframeAction, ClearKeyframeAction, InsertFrameAction, \
+from Editor.Actions.Action import ConvertKeyframeAction, ClearKeyframeAction, InsertFrameAction, \
     NewSymbolAction
 from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets
 from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction

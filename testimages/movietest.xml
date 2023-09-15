@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<library>
+    <rootsymbol name="movietest">
+        <layer name="Layer 0">
+            <keyframe n="0" contentType="symbol" path="testimages/smokepuff.xml" x="-10" y="-19"/>
+            <frame n="50"/>
+        </layer>
+    </rootsymbol>
+</library>

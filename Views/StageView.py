@@ -161,12 +161,13 @@ class StageView(StageCanvas):
     def select_frames(self, rect):
 
         frames = self.get_selectable_frames_in_rect(rect)
+        self.editor.select_frames_action(frames)
 
-        symbol = self.get_symbol()
+        #symbol = self.get_symbol()
 
-        for frame in frames:
-            frame.setSelected(True)
-            symbol.addDragItem(frame)
+        #for frame in frames:
+         #   frame.setSelected(True)
+          #  symbol.addDragItem(frame)
 
             # self.symbol.drawFrame( f,  painter );
 

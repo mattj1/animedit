@@ -5,6 +5,7 @@ from PySide2.QtGui import QImage, QPixmap, QPainter, QColor, QPen, QBrush
 from PySide2.QtWidgets import QWidget, QMenu, QAction
 
 from Editor import Editor
+from Editor.Selection import FrameRef
 from SpriteAnim.Frame import Frame
 
 
@@ -183,7 +184,7 @@ class FramesView(QWidget):
                         painter.fillRect(stop_rect, brush)
                         painter.drawRect(stop_rect)
 
-                if self.editor.selected_frame_range.contains(f, l):
+                if self.editor.is_frame_selected(l, f):
                     painter.setBrush(QColor(0, 0, 255, 127))
                     painter.drawRect(x * cw, tTop + y * ch, cw, ch)
                 x += 1
@@ -292,18 +293,34 @@ class FramesView(QWidget):
                 if self.selectBox1.y() < 0:
                     self.selectBox1.setY(0)
 
-                selected_frames = QRect(self.selectBox0.x(), self.selectBox0.y(),
+                frame_range = QRect(self.selectBox0.x(), self.selectBox0.y(),
                                         self.selectBox1.x() - self.selectBox0.x() + 1,
                                         self.selectBox1.y() - self.selectBox0.y() + 1)
 
-                layerNo = int(self.pixelToLayerNo(y - self.topHeight))
-                if layerNo >= sym.numLayers():
-                    layerNo = sym.numLayers() - 1
+                frames: [FrameRef] = []
+                for layer_index in range(frame_range.y(), frame_range.y() + frame_range.height()):
 
-                # self.parent.setSelectedLayer( layerNo )
+                    layer = self.editor.current_symbol().getLayer(layer_index)
 
-                # TODO: The current frame and layer should be updated here
-                self.editor.select_frames_action(selected_frames, layerNo)
+                    if not layer:
+                        continue
+
+                    print("process layer_index", layer_index)
+
+                    for frame_index in range(frame_range.x(), frame_range.x() + frame_range.width()):
+                        print("process frame_index", frame_index)
+                        frames.append(FrameRef(layer_index, frame_index))
+
+
+                # TODO: The layer that's selected after this is a layer with selectable content, if possible.
+                # Not really sure how that should work yet...
+
+                # print("frame_range: ", frame_range)
+                # layerNo = int(self.pixelToLayerNo(y - self.topHeight))
+                # if layerNo >= sym.numLayers():
+                #    layerNo = sym.numLayers() - 1
+
+                self.editor.select_frames_action(frames)
 
                 self.repaint()
 
