@@ -7,8 +7,8 @@ from PySide2.QtCore import QPoint
 
 from Editor import Editor
 from Editor.Actions.Action import Action
-from SpriteAnim.Frame import Frame
-from SpriteAnim.LibraryItem import SymbolLibraryItem
+from SpriteAnim.frame import Frame
+from SpriteAnim.library import SymbolLibraryItem
 
 
 class SetFrameTexturePathAction(Action):

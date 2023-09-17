@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<library>
+
+    <rootsymbol name="root">
+        <layer name="Layer 0">
+            <keyframe n="0" contentType="symbol" symbol="smoke" x="0" y="0" tween="true" />
+            <keyframe n="10" contentType="symbol" symbol="smoke" x="20" y="0"/>
+            <frame n="28"/>
+        </layer>
+    </rootsymbol>
+
+    <texture path="testimages/smokepuff0000.png" />
+    <texture path="testimages/smokepuff0001.png" />
+    <texture path="testimages/smokepuff0002.png" />
+    <texture path="testimages/smokepuff0003.png" />
+    <texture path="testimages/smokepuff0004.png" />
+    <texture path="testimages/smokepuff0005.png" />
+    <texture path="testimages/smokepuff0006.png" />
+    <texture path="testimages/smokepuff0007.png" />
+    <texture path="testimages/smokepuff0008.png" />
+    <texture path="testimages/smokepuff0009.png" />
+    <texture path="testimages/smokepuff0010.png" />
+
+    <symbol name="smoke">
+        <layer name="Layer 0">
+            <keyframe n="0" contentType="texture" name="testimages/smokepuff0000.png" x="-10" y="-19"/>
+            <keyframe n="2" contentType="texture" name="testimages/smokepuff0001.png" x="-10" y="-19"/>
+            <keyframe n="4" contentType="texture" name="testimages/smokepuff0002.png" x="-10" y="-19"/>
+            <keyframe n="6" contentType="texture" name="testimages/smokepuff0003.png" x="-10" y="-19"/>
+            <keyframe n="8" contentType="texture" name="testimages/smokepuff0004.png" x="-10" y="-19"/>
+            <keyframe n="10" contentType="texture" name="testimages/smokepuff0005.png" x="-10" y="-19"/>
+            <keyframe n="12" contentType="texture" name="testimages/smokepuff0006.png" x="-10" y="-19"/>
+            <keyframe n="14" contentType="texture" name="testimages/smokepuff0007.png" x="-10" y="-19"/>
+            <keyframe n="16" contentType="texture" name="testimages/smokepuff0008.png" x="-10" y="-19"/>
+            <keyframe n="18" contentType="texture" name="testimages/smokepuff0009.png" x="-10" y="-19"/>
+            <keyframe n="20" contentType="texture" name="testimages/smokepuff0010.png" x="-10" y="-19"/>
+            <frame n="22"/>
+        </layer>
+    </symbol>
+</library>

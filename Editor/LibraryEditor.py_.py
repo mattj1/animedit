@@ -1,7 +1,5 @@
 from Editor import Editor
-from SpriteAnim.Library import Library
-from SpriteAnim.LibraryItem import LibraryItem
-from Views.Library import LibraryWindow
+from SpriteAnim import Library, LibraryItem
 
 
 class LibraryEditor:
@@ -15,8 +13,8 @@ class LibraryEditor:
 
         self.view = None
 
-    def set_view(self, view: LibraryWindow):
-        self.view = view
+    # def set_view(self, view: LibraryWindow):
+    #     self.view = view
 
     def set_selected_index(self, new_index):
         if new_index < len(self.get_library().item_list()):

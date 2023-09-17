@@ -2,10 +2,10 @@
 from abc import abstractmethod
 from typing import Optional
 
-import PySide2
-from PySide2.QtCore import QPoint, QPointF
-from PySide2.QtGui import QPainter, Qt, QColor, QTransform, QPen, QPixmap
-from PySide2.QtWidgets import QWidget
+import PySide6
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QPainter, QColor, QTransform, QPen, QPixmap, QWheelEvent
+from PySide6.QtWidgets import QWidget, QApplication
 
 from SpriteAnim import Symbol
 
@@ -13,6 +13,8 @@ from SpriteAnim import Symbol
 class StageCanvas(QWidget):
     def __init__(self, parent=None):
         super(StageCanvas, self).__init__(parent)
+
+        self.symbol: Symbol = None
         self.transform = QTransform()
         self.canDrag = 0
 
@@ -35,9 +37,12 @@ class StageCanvas(QWidget):
         self.selectBox1 = QPointF(0, 0)
         self.selectBox = None
 
-    @abstractmethod
-    def get_symbol(self) -> Symbol:
-        return self.editor.current_symbol()
+        self.setMouseTracking(True)
+
+    def eventFilter(self, watched: PySide6.QtCore.QObject, event: PySide6.QtCore.QEvent) -> bool:
+        print("StageCanvas eventfilter", event)
+        return super().eventFilter(watched, event)
+
 
     @abstractmethod
     def get_texture(self) -> QPixmap:
@@ -87,14 +92,14 @@ class StageCanvas(QWidget):
             
         """
 
-        if self.is_symbol():
-            symbol = self.get_symbol()
-            if symbol:
-                symbol.drawFrame(f, painter=painter)
-        else:
-            tex = self.get_texture()
-            if tex:
-                painter.drawPixmap(-tex.width() / 2, -tex.height() / 2, tex)
+        # if self.is_symbol():
+        #     symbol = self.get_symbol()
+        #     if symbol:
+        #         symbol.drawFrame(f, painter=painter)
+        # else:
+        #     tex = self.get_texture()
+        #     if tex:
+        #         painter.drawPixmap(-tex.width() / 2, -tex.height() / 2, tex)
 
         # Draw pixel grid
 
@@ -143,34 +148,38 @@ class StageCanvas(QWidget):
         self.selectBox1.setX(max(self.select0.x(), self.select1.x()))
         self.selectBox1.setY(max(self.select0.y(), self.select1.y()))
 
-    def mousePressEvent(self, event: PySide2.QtGui.QMouseEvent):
+    def mousePressEvent(self, event: PySide6.QtGui.QMouseEvent):
         super().mousePressEvent(event)
 
         self.last_mouse_point = event.pos()
 
-        if event.button() == Qt.MouseButton.RightButton:
-            self.move_camera = True
-        else:
-            self.move_camera = False
+        # if event.button() == Qt.MouseButton.RightButton:
+        #     self.move_camera = True
+        # else:
+        #     self.move_camera = False
 
-    def mouseReleaseEvent(self, event: PySide2.QtGui.QMouseEvent):
+    def mouseReleaseEvent(self, event: PySide6.QtGui.QMouseEvent):
         super().mouseReleaseEvent(event)
 
-        if event.button() == Qt.MouseButton.RightButton:
-            self.move_camera = False
+        # if event.button() == Qt.MouseButton.RightButton:
+        #     self.move_camera = False
+
+    def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
+        print("keyPressEvent", event)
 
     def mouse_move(self, delta, event):
         pass
 
-    def mouseMoveEvent(self, event: PySide2.QtGui.QMouseEvent):
+    def mouseMoveEvent(self, event: PySide6.QtGui.QMouseEvent):
         super().mouseMoveEvent(event)
-
+        # print("mouse move event")
         delta = event.pos() - self.last_mouse_point
 
         self.mouse_move(delta, event)
 
         if self.move_camera:  # self.canDrag and
             self.camera = self.camera + QPointF(delta) / float(self.zoom)
+            self.repaint()
 
         self.last_mouse_point = event.pos()
 
@@ -189,14 +198,16 @@ class StageCanvas(QWidget):
         print("Translated mouse point", pt_world)
         return pt_world
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event: QWheelEvent):
+        pointEvent = event.point(0)
+        pos = pointEvent.pos()
 
         new_zoom = self.zoom
 
         if self.allow_zoom():
-            if event.delta() > 0:
+            if event.angleDelta().y() > 0:
                 new_zoom *= 2
-            else:
+            elif event.angleDelta().y() < 0:
                 new_zoom /= 2
 
         if new_zoom < 1:
@@ -207,7 +218,8 @@ class StageCanvas(QWidget):
 
         if new_zoom != self.zoom:
             # Offset from center of canvas (pixels)
-            offs = QPointF(event.pos()) - QPointF(self.width() / 2, self.height() / 2)
+            offs = QPointF(pos) - QPointF(self.width() / 2, self.height() / 2)
+            print(offs)
             offs_world = offs / self.zoom
             pt_world = -self.camera + offs_world
             self.camera = -(pt_world - offs / new_zoom)

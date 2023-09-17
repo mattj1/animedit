@@ -1,10 +1,6 @@
-from PySide2.QtCore import QPointF, Qt, QRectF, QSizeF, QRect, QPoint
-from PySide2.QtGui import QPen, QColor
+from PySide6.QtCore import QPoint, QPointF, QRect
 
-import SpriteAnim
 import TextureMgr
-from SpriteAnim import Symbol
-from TextureMgr import *
 
 
 class Frame:
@@ -15,7 +11,6 @@ class Frame:
     tex = None
     symbol = None
 
-    TYPE_EMPTY = 0  # This should never be used
     TYPE_FRAME = 1
     TYPE_KEY = 2
 
@@ -26,34 +21,72 @@ class Frame:
 
     pos: QPoint
 
-    def __init__(self, frameNo, contentType, frame_type=TYPE_FRAME):
-        # self.type = type
-        self.frameNo = frameNo
+    def __init__(self, frame_no, content_type, frame_type=TYPE_FRAME):
+        self.type = frame_type
+        self.frameNo = frame_no
         self.layer = None
-        # symbol_frame = -1 means do not set the playback frame.
-        # symbol frame can be changed without keyframes
-        self.symbol_frame = -1
 
         # Keyframe data ---------------------------------------------
-        self.contentType = contentType
-        self.type = frame_type
+        self.contentType = content_type
         self.pos = QPoint(0, 0)
         self.isTween = 0
 
-        self.tex = None
-        self.texturePath = None
+        # Texture content
+        self.texture_ref = None
+
+        # self.tex = None
         self.srcRect = QRect(0, 0, 0, 0)
-        self.symbol = None
+
+        # Reference to the symbol content
+        self.symbol_ref = None
+
+        # Set the frame of the symbol content. -1 means do not set the frame
+        self.symbol_frame = -1
 
         # Cached frame data (re-calculated often) -------------------
-        self.keyFrameStart = None
-        self.keyFrameEnd = None
+        self.key_frame_start = None
+        self.key_frame_end = None
         self.cached_symbol_frame = -1
 
         # UI/Editor stuff -------------------------------------------
         self.tempOffset = QPoint(0, 0)
         self.isDragging = 0
         self.isSelected = 0
+
+    def __repr__(self) -> str:
+        s = f"<Frame {self.frameNo}: "
+        if self.isKey():
+            s += "\u23fa "
+
+            s += "contentType="
+            if self.contentType == Frame.CONTENT_EMPTY:
+                s += "EMPTY"
+
+            if self.contentType == Frame.CONTENT_TEXTURE:
+                s += "TEXTURE "
+                s += f" {self.texture_ref.path} {self.get_texture()}"
+
+            if self.contentType == Frame.CONTENT_SYMBOL:
+                s += f"SYMBOL {self.symbol_ref.name} {self.get_symbol()}"
+
+            if self.contentType == Frame.CONTENT_POINT:
+                s += "POINT"
+
+        else:
+            if self.key_frame_start is None:
+                s += "(No starting keyframe)"
+            else:
+                s += f"{self.key_frame_start.frameNo}"
+
+            s += " -> "
+            if self.key_frame_end is None:
+                s += "(No ending keyframe)"
+            else:
+                s += f"{self.key_frame_end.frameNo}"
+
+        s += f' [ {self.cached_symbol_frame} ]'
+        s += ">"
+        return s
 
     def clone(self):
         f = Frame(self.frameNo, self.contentType)
@@ -69,14 +102,33 @@ class Frame:
         f.texturePath = self.texturePath
         f.srcRect = self.srcRect.__copy__()
 
-        f.symbol = self.symbol
+        f.symbol_ref = self.symbol_ref
 
         return f
 
+    def get_key_frame_start(self):
+        if self.isKey():
+            return self
+
+        return self.key_frame_start
+
+    def get_symbol(self):
+        if self.get_key_frame_start().contentType == Frame.CONTENT_SYMBOL:
+            return self.get_key_frame_start().symbol_ref.get_symbol()
+
+        return None
+
+    def get_texture(self):
+        if self.get_key_frame_start().contentType == Frame.CONTENT_TEXTURE:
+            return self.get_key_frame_start().texture_ref.get_texture()
+
+        return None
+
     def is_same_content_as_frame(self, other):
+        raise "WIP"
         other: Frame
 
-        key_frame = self.layer.frames[self.layer.keyframeForFrame(self.frameNo)]
+        key_frame = self.layer.keyframeForFrame(self.frameNo)
 
         if key_frame.contentType != other.contentType:
             return False
@@ -86,7 +138,7 @@ class Frame:
                 return False
 
         if key_frame.contentType == Frame.CONTENT_SYMBOL:
-            if key_frame.symbol != other.symbol:
+            if key_frame.symbol_ref != other.symbol_ref:
                 return False
 
         return True
@@ -102,10 +154,12 @@ class Frame:
         self.pos.setX(-self.srcRect.width() / 2)
         self.pos.setY(-self.srcRect.height() / 2)
 
-    def setSymbol(self, symbol: Symbol):
+    def setSymbol(self, symbol):
+        assert "No longer implemented"
+
         self.symbol = symbol
         self.contentType = Frame.CONTENT_SYMBOL
-        #self.type = Frame.TYPE_KEY
+        # self.type = Frame.TYPE_KEY
         self.pos.setX(0)
         self.pos.setY(0)
 
@@ -120,6 +174,8 @@ class Frame:
             return QPointF(self.pos.x() + self.tempOffset.x(), self.pos.y() + self.tempOffset.y())
 
         offs = QPointF(0, 0)
+
+        assert "WIP"
 
         texToDraw = self.tex
         symToDraw = self.symbol
@@ -173,7 +229,6 @@ class Frame:
 
             print("Playing symbol {}: {}".format(key_frame.symbol.name, self.cached_symbol_frame))
             key_frame.symbol.drawFrame(frame_number=self.cached_symbol_frame, painter=painter)
-
 
         if self.isSelected:
             pen = QPen(Qt.SolidLine)

@@ -1,308 +1,60 @@
-import xml.etree.ElementTree as ET
+import PySide6.QtGui
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QSplitter, QLabel, QFrame
 
-from PySide2.QtGui import QKeySequence, QPalette
-from PySide2.QtWidgets import QMainWindow, QVBoxLayout, QAction, QFrame, QScrollBar, QInputDialog, \
-    QLineEdit
+from Editor import Editor
+from Views import LayerListView, StageView
 
-from Views.FramesView import *
-from Views.LayerListView import *
-from Views.Library.LibraryWindow import *
-from Editor.Actions.Action import ConvertKeyframeAction, ClearKeyframeAction, InsertFrameAction, \
-    NewSymbolAction
-from Editor.Actions.FrameActions import SetFrameTexturePathAction, ChangeMultipleFrameOffsets
-from Editor.Actions.SelectionActions import SelectFramesAction, ClearSelectionAction, SelectLayerAction
-from Views.StageView import *
-
-
-# from clock import *
 
 class MainWindow(QMainWindow):
     def __init__(self, editor: Editor, parent=None):
         super(MainWindow, self).__init__(parent)
 
+        self.layerListView = LayerListView(editor=editor, parent=self)
+        self.stageView = StageView(editor=editor, parent=self)
+
         self.editor = editor
         self.editor.set_view(self)
 
         self.setWindowTitle("Editor")
-
-        # Sub views
-
-        self.layerListView = LayerListView(editor=editor, parent=self)
-        self.framesView = FramesView(editor=editor, parent=self)
-        self.stageView = StageView(editor=editor, parent=self)
-        self.libraryWindow = LibraryWindow(library_editor=editor.library_editor, parent=self)
-
-        # Menu
-
-        self.fileMenu = self.menuBar().addMenu("&File")
-        self.editMenu = self.menuBar().addMenu("&Edit")
-        self.undoAct = QAction("&Undo", self, statusTip="Undo", triggered=self.undoAction)
-        self.undoAct.setShortcut(QKeySequence("Ctrl+Z"))
-        self.redoAct = QAction("&Redo", self, statusTip="Redo", triggered=self.redoAction)
-        self.redoAct.setShortcut(QKeySequence("Ctrl+Y"))
-
-        self.insertFrameAct = QAction("Insert Frame", self, statusTip="Insert frame after the current frame",
-                                      triggered=self.insertFrameAction)
-        self.insertFrameAct.setShortcut(QKeySequence("F5"))
-
-        self.convertToKeyframeAct = QAction("Convert to Keyframe", self,
-                                            statusTip="Convert selected frames to keyframes",
-                                            triggered=self.convertToKeyframeAction)
-        self.convertToKeyframeAct.setShortcut(QKeySequence("F6"))
-
-        self.clearKeyframeAct = QAction("Clear Keyframe", self, statusTip="Convert selected keyframes to frames",
-                                        triggered=self.clearKeyframeAction)
-        self.clearKeyframeAct.setShortcut(QKeySequence("Shift+F6"))
-
-        self.newSymbolAct = QAction("New Symbol", self, statusTip="Create a new symbol",
-                                    triggered=self.newSymbolAction)
-        self.newSymbolAct.setShortcut(QKeySequence("Shift+F8"))
-
-        self.editMenu.addAction(self.undoAct)
-        self.editMenu.addAction(self.redoAct)
-        self.editMenu.addAction(self.convertToKeyframeAct)
-        self.editMenu.addAction(self.insertFrameAct)
-        self.editMenu.addAction(self.clearKeyframeAct)
-        self.editMenu.addAction(self.newSymbolAct)
-
-        # Set up UI
-
-        centralwidget = QWidget(self)
-        self.setCentralWidget(centralwidget)
         self.resize(731, 475)
+
         layout = QVBoxLayout()
-        centralwidget.setLayout(layout)
-        layout.setSpacing(1)
+        # layout.setSpacing(1)
         layout.setContentsMargins(0, 0, 0, 0)
-        canvasTimeSplit = QSplitter()
 
-        canvasTimeSplit.setOrientation(Qt.Vertical)
+        central_widget = QWidget(self)
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
 
-        timelineSplit = QSplitter()
-        timelineSplit.setOrientation(Qt.Horizontal)
-        timelineSplit.setHandleWidth(1)
-        canvasTimeSplit.addWidget(timelineSplit)
+        canvas_time_split = QSplitter()
+        canvas_time_split.setOrientation(Qt.Vertical)
+        # canvas_time_split.setHandleWidth(1)
+        layout.addWidget(canvas_time_split)
 
-        framesContainer = self.createTimelineContainer()
+        timeline_split = QSplitter()
+        timeline_split.setOrientation(Qt.Horizontal)
+        # timeline_split.setHandleWidth(1)
 
-        canvasTimeSplit.addWidget(self.createCanvasPropertiesContainer())
-        canvasTimeSplit.addWidget(timelineSplit)
+        timeline_split.addWidget(self.layerListView)
+        timeline_split.addWidget(QLabel("Timeline"))
 
-        timelineSplit.addWidget(self.createLayersContainer())
-        timelineSplit.addWidget(framesContainer)
+        canvas_time_split.addWidget(self.stageView)
+        canvas_time_split.addWidget(timeline_split)
 
-        layout.addWidget(canvasTimeSplit)
+    def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
+        super().keyPressEvent(event)
 
-        # timelineSplit.addWidget(ac)
+        print("keyPressEvent", event, event.key())
 
-        #        self.statusBar().showMessage("Ready")
-        # menubar = QMenuBar(self)
-        # menubar.setGeometry(QRect(0, 0, 731, 29))
-        self.stageView.framesView = self.framesView
-        self.framesView.layerView = self.layerListView
+        if event.key() == Qt.Key_Space:
+            print("drag...")
+            self.stageView.move_camera = True
 
-        # self.layerView.repaint()
-        # print self.layerView.topLayer
+    def keyReleaseEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
+        super().keyReleaseEvent(event)
 
-        # build a tree structure
-        root = ET.Element("html")
+        print("keyPressEvent", event, event.key())
 
-        head = ET.SubElement(root, "head")
-
-        title = ET.SubElement(head, "title")
-        title.text = "Page Title"
-
-        body = ET.SubElement(root, "body")
-        body.set("bgcolor", "#ffffff")
-
-        body.text = "Hello, World!"
-
-        # wrap it in an ElementTree instance, and save as XML
-        tree = ET.ElementTree(root)
-        tree.write("page.xhtml")
-
-        # self.setAcceptDrops(True)
-
-        self.editor.new_document()
-
-    def postShow(self):
-        self.libraryWindow.show()
-
-        # self.grabKeyboard()
-
-    def getTextureMgr(self):
-        return self.textureMgr
-
-    def createLayersContainer(self):
-        w = QWidget()
-        l = QVBoxLayout()
-        l.setContentsMargins(0, 0, 0, 0)
-        l.setSpacing(1)
-        w.setLayout(l)
-
-        f = QFrame()
-
-        f.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
-        f.setMinimumHeight(18)
-
-        f.setBackgroundRole(QPalette.Midlight)
-        f.setAutoFillBackground(1)
-        l.addWidget(self.layerListView)
-        l.addWidget(f)
-
-        # Layer buttons
-        l2 = QHBoxLayout()
-        l2.setContentsMargins(0, 0, 0, 0)
-        f.setLayout(l2)
-        addLayerButton = QPushButton('+')
-        addLayerButton.setMaximumSize(16, 16)
-        addLayerButton.clicked.connect(self.addLayerAction)
-        deleteLayerButton = QPushButton('-')
-        deleteLayerButton.setMaximumSize(16, 16)
-
-        # addLayerButton.setContentsMargins(0, 0, 0, 0)
-        l2.addWidget(addLayerButton)
-        l2.addWidget(deleteLayerButton)
-
-        # return self.layerView
-        return w
-
-    def createTimelineContainer(self):
-        w = QWidget()
-        l = QVBoxLayout()
-        l.setContentsMargins(0, 0, 0, 0)
-        l.setSpacing(1)
-        w.setLayout(l)
-
-        w1 = self.createTimelineContainer2()
-        self.framesScrollBar = QScrollBar(Qt.Horizontal)
-        self.framesScrollBar.valueChanged.connect(self.frameSliderChanged)
-        l.addWidget(w1)
-        l.addWidget(self.framesScrollBar)
-
-        return w
-
-    # Create the actual FramesView and the scrollbar next to it
-    def createTimelineContainer2(self):
-        w = QWidget()
-        l = QHBoxLayout()
-        l.setContentsMargins(0, 0, 0, 0)
-        l.setSpacing(1)
-        w.setLayout(l)
-
-        self.framesView.setMinimumWidth(600)
-
-        self.layersScrollBar = QScrollBar(Qt.Orientation.Vertical)
-        self.layersScrollBar.valueChanged.connect(self.layersScrollBarChanged)
-
-        l.addWidget(self.framesView)
-        l.addWidget(self.layersScrollBar)
-
-        return w
-
-    def createCanvasPropertiesContainer(self):
-        w = QSplitter()
-
-        propertiesContainer = self.createPropertiesContainer()
-        w.addWidget(self.stageView)
-        w.addWidget(propertiesContainer)
-
-        return w
-
-    def createPropertiesContainer(self):
-        w = QFrame()
-        w.setMinimumWidth(250)
-        w.setLineWidth(1)
-        # w.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        l = QVBoxLayout()
-
-        w.setLayout(l)
-        w.setAutoFillBackground(1)
-
-        w.setBackgroundRole(QPalette.Midlight)
-
-        b = QPushButton('properties go here')
-
-        b.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        l.addWidget(b)
-        l.addWidget(QPushButton('test'))
-        l.addWidget(QPushButton('test'))
-        l.addWidget(QPushButton('test'))
-        l.addWidget(QPushButton('test'))
-
-        return w
-
-    # keyboard event stuff
-    def keyPressEvent(self, event):
-        print(event.key)
-
-    def frameSliderChanged(self, value):
-        self.framesView.setLeftFrame(value)
-
-    # set selected layer for current symbol
-    def setSelectedLayer(self, layerNo):
-        self.layerListView.setLayer(layerNo)
-
-    def getSelectedLayer(self):
-        return self.layerListView.selectedLayer
-
-    def set_top_layer(self, l):
-        self.layerListView.topLayer = l
-        self.layerListView.repaint()
-        self.framesView.repaint()
-        self.layersScrollBar.setValue(l)
-
-    def layersScrollBarChanged(self, value):
-        self.editor.set_top_layer(value)
-
-    # editing model
-
-    def getLibrary(self):
-        return self.rootSymbol.library
-
-    def refresh_view(self):
-        self.undoAct.setEnabled(len(self.editor.actions) != 0)
-        self.redoAct.setEnabled(len(self.editor.redoActions) != 0)
-        self.statusBar().showMessage("Frame %d" % self.editor.frame_number())
-
-        print("undo: ", len(self.editor.actions), " redo: ", len(self.editor.redoActions))
-
-        self.stageView.repaint()
-        self.layerListView.repaint()
-        self.framesView.repaint()
-
-    def undoAction(self):
-        self.editor.undo()
-
-    def redoAction(self):
-        self.editor.redo()
-
-    def addLayerAction(self):
-        self.editor.add_layer_action()
-
-    def convertToKeyframeAction(self):
-        self.editor.convert_to_keyframe_action()
-
-    def clearKeyframeAction(self):
-        self.editor.clear_keyframe_action()
-
-    def insertFrameAction(self):
-        self.editor.insert_frame_action()
-
-
-    def newSymbolAction(self):
-        ok = 0
-        txt = QInputDialog().getText(self, "Enter name for new symbol",
-                                     "Test", QLineEdit.Normal,
-                                     "Symbol")
-        a = txt[0].encode('utf-8')
-        if len(a) > 0:
-            # todo: make sure there are no name conflicts with this in the library
-            self.runAction(NewSymbolAction(self.rootSymbol.library, a))
-
-    def moveEvent(self, event: PySide2.QtGui.QMoveEvent):
-        super().moveEvent(event)
-
-        self.libraryWindow.move(self.pos().x() + self.width(), self.pos().y())
-
-    # def selectLayersAction(self,  firstLayer,  lastLayer,  ):
+        if event.key() == Qt.Key_Space:
+            self.stageView.move_camera = False

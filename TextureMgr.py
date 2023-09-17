@@ -1,4 +1,4 @@
-from PySide2.QtGui import QPixmap, QImage
+from PySide6.QtGui import QPixmap, QImage
 
 
 class _TextureMgr:

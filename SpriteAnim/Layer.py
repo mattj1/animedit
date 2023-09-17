@@ -1,9 +1,10 @@
+from typing import Any
 from xml.etree.ElementTree import Element
 
-from PySide2.QtCore import QPoint, QRect
+from PySide6.QtCore import QPoint, QRect
 
 import TextureMgr
-from SpriteAnim.Frame import Frame
+from SpriteAnim.frame import Frame
 
 
 class Layer:
@@ -11,18 +12,15 @@ class Layer:
 
     def __init__(self, symbol):
         self.symbol = symbol
+
+        from SpriteAnim.frame import Frame
         self.frames: [Frame] = []
         self.name = "Layer"
         print("Layer init")
 
-    def numFrames(self):
+    def num_frames(self):
         return len(self.frames)
 
-    def getFrame(self, idx):
-        if idx >= self.numFrames():
-            return None
-
-        return self.frames[idx]
 
     def appendFrame(self, f):
         f.layer = self
@@ -64,68 +62,21 @@ class Layer:
         if do_update:
             self.updateFrames()
 
-    # Update all frames to have proper content types, textures, symbols, keyframe start/ends
-    def updateFrames(self):
-        nextKey = self.nextKeyFrameForFrame(0)
-        curKeyFrame = self.frames[0]
-
-        symbol_frame = 0
-
-        prevFrame: Frame = None
-        f: Frame
-
-        for i in range(0, len(self.frames)):
-            f = self.frames[i]
-            f.frameNo = i
-            if f.isFrame():
-                f.contentType = curKeyFrame.contentType
-                f.symbol = curKeyFrame.symbol
-                f.tex = curKeyFrame.tex
-
-                if f.contentType == Frame.CONTENT_SYMBOL:
-                    symbol_frame += 1
-
-                f.keyFrameStart = curKeyFrame.frameNo
-                f.keyFrameEnd = nextKey
-
-                # print "set contentType to key ",  curKeyFrame.frameNo,  " contentType ",  curKeyFrame.contentType
-            else:
-                curKeyFrame = f
-                # print "new keyframe... ",  f.frameNo,  f.contentType
-                nextKey = self.nextKeyFrameForFrame(i)
-
-                if prevFrame is not None:
-                    if not prevFrame.is_same_content_as_frame(f):
-                        symbol_frame = 0
-                else:
-                    symbol_frame = 0
-
-                if f.symbol_frame != -1:
-                    symbol_frame = f.symbol_frame
-
-            if f.contentType == Frame.CONTENT_SYMBOL:
-                if symbol_frame >= f.symbol.totalFrames:
-                    symbol_frame = 0
-
-            prevFrame = f
-            f.cached_symbol_frame = symbol_frame
-
-
     def keyframeForFrame(self, frameNo):
         for i in range(frameNo, 0, -1):
             f = self.frames[i]
             if f.isKey():
-                return i
+                return f
 
-        return 0
+        return None
 
     def nextKeyFrameForFrame(self, frameNo):
         for i in range(frameNo + 1, len(self.frames)):
             f = self.frames[i]
             if f.isKey():
-                return i
+                return f
 
-        return 0
+        return None
 
     def convertToKeyframe(self, frameNo):
         f = self.frames[frameNo]
@@ -141,7 +92,7 @@ class Layer:
 
         return f.boundingBox()
 
-    def load_from_xml(self, node: Element):
+    def load_from_xml(self, node: Element, library):
         self.name = node.get("name")
         print(f"Layer load_from_xml {self.name}")
 
@@ -159,30 +110,32 @@ class Layer:
             print("frame: ", frame_no, f.tag, f)
 
             # Fill in frames from last until this (-1)
-            print("fill frames {} -> {}".format(cur_frame, frame_no))
+            print("Layer.load_from_xml: Fill frames {} -> {}".format(cur_frame, frame_no))
             for i in range(cur_frame + 1, frame_no):
                 print("fill frame {}".format(i))
 
                 frame = Frame(i, Frame.CONTENT_EMPTY, frame_type=Frame.TYPE_FRAME)
                 self.appendFrame(frame)
 
-            frame: Frame
+            frame: Frame = None
 
             if f.tag == "keyframe":
 
-                print("content_type", content_type)
+                # print("content_type", content_type)
                 if content_type == "texture":
                     frame = Frame(frame_no, Frame.CONTENT_TEXTURE, frame_type=Frame.TYPE_KEY)
-                    frame.texturePath = f.get("path")
-                    frame.tex = TextureMgr.textureMgr().loadImage(frame.texturePath)
-                    frame.srcRect = QRect(0, 0, frame.tex.width(), frame.tex.height())
+                    frame.texture_ref = library.get_texture_ref(f.get('name'))
+
+                    # frame.texturePath = f.get("path")
+                    # tex = TextureMgr.textureMgr().loadImage(frame.texturePath)
+                    # frame.srcRect = QRect(0, 0, frame.tex.width(), frame.tex.height())
+                    frame.srcRect = QRect(0, 0, 20, 31)
 
                 if content_type == "symbol":
                     frame = Frame(frame_no, Frame.CONTENT_SYMBOL, frame_type=Frame.TYPE_KEY)
-                    frame.symbol = None
+                    frame.symbol_ref = library.get_symbol_ref(f.get('symbol'))
 
-                    raise Exception("TODO: symbol content type")
-                    pass
+                assert frame is not None
 
                 offs_x = int(f.get("x"))
                 offs_y = int(f.get("y"))
@@ -199,8 +152,60 @@ class Layer:
 
         print("total frames: {}".format(len(self.frames)))
 
-    def get_frame(self, frame_number: int) -> Frame:
-        if frame_number >= len(self.frames):
+
+    def get_frame(self, frame_number: int) -> Frame | None:
+        if frame_number >= self.num_frames():
             return None
 
         return self.frames[frame_number]
+
+    # Update all frames to have proper content types, textures, symbols, keyframe start/ends
+    def update_frames(self):
+        cur_key_frame = self.frames[0]
+        next_key_frame = self.nextKeyFrameForFrame(0)
+
+        print("layer update_frames: ", self.symbol.name, cur_key_frame, next_key_frame)
+
+        symbol_frame = 0
+
+        prevFrame: Frame = None
+        f: Frame
+
+        for i in range(0, len(self.frames)):
+            f = self.frames[i]
+            f.frameNo = i
+
+            if not f.isKey():
+                # If we're processing a regular frame, ...
+                f.key_frame_start = cur_key_frame
+                f.key_frame_end = next_key_frame
+
+                # print "set contentType to key ",  curKeyFrame.frameNo,  " contentType ",  curKeyFrame.contentType
+            else:
+                cur_key_frame = f
+                next_key_frame = self.nextKeyFrameForFrame(i)
+
+                f.key_frame_start = f
+                f.key_frame_end = f
+
+                # TODO: This is only the case if the content didn't change
+                if f.symbol_frame != -1:
+                    symbol_frame = f.symbol_frame
+                # else:
+                #     symbol_frame += 1
+
+                # print "new keyframe... ",  f.frameNo,  f.contentType
+
+                # if prevFrame is not None:
+                #     if not prevFrame.is_same_content_as_frame(f):
+                #         symbol_frame = 0
+                # else:
+                #     symbol_frame = 0
+
+            if f.get_symbol() is not None:
+                if symbol_frame >= f.get_symbol().get_total_frames():
+                    symbol_frame = 0
+
+            prevFrame = f
+            f.cached_symbol_frame = symbol_frame
+            symbol_frame += 1

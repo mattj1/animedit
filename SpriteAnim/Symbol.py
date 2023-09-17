@@ -1,11 +1,8 @@
 from xml.etree.ElementTree import Element
 
-from PySide2.QtCore import QRectF
-from PySide2.QtGui import QPainter
-
 import TextureMgr
-from SpriteAnim.Frame import Frame
-from SpriteAnim.Layer import Layer
+from SpriteAnim.frame import Frame
+from SpriteAnim.layer import Layer
 from TextureMgr import *
 
 
@@ -22,7 +19,7 @@ class Symbol:
         # List of frames inside this symbol which have been selected for drag+drop or arrow moving
         self.dragItems: [Frame] = []
 
-    def numLayers(self):
+    def num_layers(self):
         return len(self.layers)
 
     def createNewLayer(self):
@@ -37,65 +34,70 @@ class Symbol:
         return l
 
     def getFrame(self, layerNo, frameNo) -> Frame:
-        layer = self.getLayer(layerNo)
+        layer = self.get_layer(layerNo)
         if layer:
             return layer.get_frame(frameNo)
 
         return None
 
-    # insert layer before index idx
-    def insertLayer(self, layer, idx):
-        self.layers.insert(idx, layer)
-        self.updateLayers()
-
-    def getLayer(self, idx):
+    def get_layer(self, idx):
         if idx >= len(self.layers):
             return None
 
         return self.layers[idx]
 
-    # Remove layer from layers array
-    def removeLayer(self, layer):
+    def add_layer(self, layer):
+        self.layers.append(layer)
+        self.update_layers()
+
+    # insert layer before index idx
+    def insert_layer(self, layer, idx):
+        self.layers.insert(idx, layer)
+        self.update_layers()
+
+    def remove_layer(self, layer):
         self.layers.remove(layer)
-        self.updateLayers()
+        self.update_layers()
+
+    def update_layers(self):
+        c = 0
+        for layer in self.layers:
+            layer.layerNo = c
+            c += 1
+
+        self.updateTotalFrames()
 
     def updateTotalFrames(self):
         self.totalFrames = 0
-        for i in range(0, len(self.layers)):
-            if self.layers[i].numFrames() > self.totalFrames:
-                self.totalFrames = self.layers[i].numFrames()
+        for layer in self.layers:
+            if layer.num_frames() > self.totalFrames:
+                self.totalFrames = layer.num_frames()
 
-    def updateLayers(self):
-        c = 0
-        for l in self.layers:
-            l.layerNo = c
-            c += 1
-
-    def drawFrame(self, frame_number: int, painter: QPainter):
-        n = self.numLayers()
-        for i in range(n - 1, -1, -1):
-            l = self.layers[i]
-            if frame_number >= l.numFrames():
-                continue
-            # print "drawing ",  frameNo,  l.numFrames()
-            l.frames[frame_number].draw(painter)
+    # def drawFrame(self, frame_number: int, painter: QPainter):
+    #     n = self.numLayers()
+    #     for i in range(n - 1, -1, -1):
+    #         l = self.layers[i]
+    #         if frame_number >= l.numFrames():
+    #             continue
+    #         # print "drawing ",  frameNo,  l.numFrames()
+    #         l.frames[frame_number].draw(painter)
 
     def numFramesInLayer(self, layerNo):
         return self.layers[layerNo].numFrames()
 
-    def boundingBoxForFrame(self, frame_number: int):
-        bb = QRectF(0, 0, 0, 0)
-        # Run through all the frames and get their bounding box
-        for l in self.layers:
-            f = l.getFrame(frame_number)
-            if f is None:
-                continue
-
-            box = f.boundingBox()
-            if box is not None:
-                bb = bb.united(box)
-
-        return bb
+    # def boundingBoxForFrame(self, frame_number: int):
+    #     bb = QRectF(0, 0, 0, 0)
+    #     # Run through all the frames and get their bounding box
+    #     for l in self.layers:
+    #         f = l.getFrame(frame_number)
+    #         if f is None:
+    #             continue
+    #
+    #         box = f.boundingBox()
+    #         if box is not None:
+    #             bb = bb.united(box)
+    #
+    #     return bb
 
     def clearDragItems(self):
         for frame in self.dragItems:
@@ -109,25 +111,43 @@ class Symbol:
     def addDragItem(self, i):
         self.dragItems.append(i)
 
-    def load_from_xml(self, node: Element):
+    def load_from_xml(self, node: Element, library):
         self.name = node.get("name")
         print(f'Symbol load_from_xml {self.name}')
 
         for n in node.iterfind("layer"):
             layer = Layer(self)
-            layer.load_from_xml(n)
-            self.layers.append(layer)
+            layer.load_from_xml(n, library)
+            self.add_layer(layer)
 
-            layer.updateFrames()
 
+            # layer.updateFrames()
+
+        # self.updateTotalFrames()
+
+    def get_total_frames(self):
         self.updateTotalFrames()
+        return self.totalFrames
 
     # Parse a <symbol> item
     @staticmethod
-    def from_xml(node: Element):
+    def from_xml(node: Element, library):
         print("from_xml", node)
         symbol = Symbol()
-        symbol.load_from_xml(node)
+        symbol.load_from_xml(node, library)
 
         return symbol
 
+    @staticmethod
+    def from_empty():
+        symbol = Symbol()
+
+        layer = Layer(symbol)
+        layer.name = "Layer 0"
+        symbol.add_layer(layer)
+
+        layer = Layer(symbol)
+        layer.name = "Layer 1"
+        symbol.add_layer(layer)
+
+        return symbol

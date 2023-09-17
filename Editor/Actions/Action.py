@@ -3,9 +3,8 @@ from abc import abstractmethod
 from PySide2.QtCore import QRect
 
 from Editor import Editor
-from SpriteAnim.Frame import Frame
-from SpriteAnim.LibraryItem import LibraryItem
-from SpriteAnim.Symbol import Symbol
+from SpriteAnim import Symbol, LibraryItem
+from SpriteAnim.frame import Frame
 
 
 class Action(object):
@@ -17,12 +16,10 @@ class Action(object):
 
     # Selection...
 
-
     # Symbol we're editing
     symbol: Symbol
 
     def __init__(self):
-
         self.prev_editor_frame = 0
         self.prev_editor_frame = 0
         print("new action")
@@ -36,10 +33,8 @@ class Action(object):
     def redo(self, editor: Editor):
         print("Action.redo")
 
-
     def getFrame(self) -> Frame:
         return self.symbol.getFrame(self.layerNo, self.editor_frame)
-
 
 
 class InsertFrameRangeSubAction(Action):
@@ -108,7 +103,7 @@ class InsertFrameAction(Action):
         self.insertMode = 0
         if selection.x() == -1:
             self.insertMode = 1
-            self.selection = QRect(currentFrame, 0, 1, self.symbol.numLayers())
+            self.selection = QRect(currentFrame, 0, 1, self.symbol.num_layers())
         else:
             self.selection = selection
 

@@ -6,7 +6,6 @@ from PySide2.QtWidgets import QWidget, QMenu, QAction
 
 from Editor import Editor
 from Editor.Selection import FrameRef
-from SpriteAnim.Frame import Frame
 
 
 class FramesView(QWidget):

@@ -1,8 +1,8 @@
 import math
 
-from PySide2.QtCore import QRectF, QSize
-from PySide2.QtGui import QPainter, Qt, QColor, QPen
-from PySide2.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton
+from PySide6.QtCore import QRectF, Qt, QPoint
+from PySide6.QtGui import QPainter, QColor, QPen
+from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QPushButton, QLabel
 
 from Editor import Editor
 
@@ -15,6 +15,7 @@ class LayerListView(QWidget):
 
         self.setMinimumWidth(280)
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+
         # self.setMinimumHeight(280)
         self.ch = 18
 
@@ -26,6 +27,8 @@ class LayerListView(QWidget):
         addLayerButton = QPushButton('+')
         addLayerButton.setMaximumSize(16, 16)
         self.box_layout.addWidget(addLayerButton)
+        self.box_layout.addWidget(QLabel("Test"))
+        self.box_layout.addWidget(QLabel("Test2"))
 
         # self.listwidget = QListWidget(self)
         # self.listwidget.setSpacing(0)
@@ -42,6 +45,8 @@ class LayerListView(QWidget):
         # self.box_layout.addWidget(self.listwidget)
 
     def top_layer(self):
+        return 0
+
         return self.editor.top_layer
 
     def paintEvent(self, event):
@@ -53,13 +58,13 @@ class LayerListView(QWidget):
         tw = sw
         th = sh - self.topHeight
 
-        current_symbol = self.editor.current_symbol()
+        current_symbol = self.editor.current_symbol
 
         numRow = int(math.floor(th / ch)) + 1
 
         lastRow = self.top_layer() + numRow
-        if lastRow > current_symbol.numLayers():
-            lastRow = current_symbol.numLayers()
+        if lastRow > current_symbol.num_layers():
+            lastRow = current_symbol.num_layers()
 
         # Figure out what layers to render
 
@@ -69,6 +74,9 @@ class LayerListView(QWidget):
 
         painter.setBrush(QColor(214, 214, 214, 255))
         painter.drawRect(0, 0, sw, self.topHeight)
+
+        painter.setPen(QColor(0, 0, 0, 255))
+        painter.drawText(QPoint(0, 25), "Test")
 
         pen = QPen(Qt.SolidLine)
         pen.setColor(QColor(222, 222, 222, 255))
@@ -81,14 +89,14 @@ class LayerListView(QWidget):
             pen.setColor(QColor(222, 222, 222, 255))
             painter.setPen(pen)
 
-            if l == self.editor.layer_index():
+            if l == self.editor.selected_layer_index:
                 painter.setBrush(QColor(0, 0, 127, 255))
             else:
                 painter.setBrush(QColor(255, 255, 255, 255))
 
             painter.drawRect(0, tTop + y * ch, sw, ch)
 
-            if l == self.editor.layer_index():
+            if l == self.editor.selected_layer_index:
                 pen.setColor(QColor(255, 255, 255, 255))
             else:
                 pen.setColor(QColor(0, 0, 0, 255))
@@ -107,11 +115,15 @@ class LayerListView(QWidget):
             return
 
         l = int(self.top_layer() + (y - (y % self.ch)) / self.ch)
-
-        if l >= self.editor.current_symbol().numLayers():
+        print("Select layer ", l)
+        if l >= self.editor.current_symbol.num_layers():
             return
 
-        self.editor.select_layer_action(l)
+
+        # TODO - should this be an action?
+        self.editor.selected_layer_index = l
+
+        # self.editor.select_layer_action(l)
 
     def wheelEvent(self, event):
 

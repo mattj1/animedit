@@ -1,4 +1,3 @@
-from .RootSymbol import RootSymbol
-from .Symbol import Symbol
-from .Library import Library
-from .LibraryItem import LibraryItem
+from .root_symbol import RootSymbol
+from .symbol import Symbol
+from .library import Library, LibraryItem
