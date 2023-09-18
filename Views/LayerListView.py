@@ -24,11 +24,11 @@ class LayerListView(QWidget):
 
         self.setLayout(self.box_layout)
 
-        addLayerButton = QPushButton('+')
-        addLayerButton.setMaximumSize(16, 16)
-        self.box_layout.addWidget(addLayerButton)
-        self.box_layout.addWidget(QLabel("Test"))
-        self.box_layout.addWidget(QLabel("Test2"))
+        # addLayerButton = QPushButton('+')
+        # addLayerButton.setMaximumSize(16, 16)
+        # self.box_layout.addWidget(addLayerButton)
+        # self.box_layout.addWidget(QLabel("Test"))
+        # self.box_layout.addWidget(QLabel("Test2"))
 
         # self.listwidget = QListWidget(self)
         # self.listwidget.setSpacing(0)
@@ -45,24 +45,23 @@ class LayerListView(QWidget):
         # self.box_layout.addWidget(self.listwidget)
 
     def top_layer(self):
-        return 0
-
         return self.editor.top_layer
 
     def paintEvent(self, event):
         sw = self.width()
         sh = self.height()
         tTop = self.topHeight
-        ch = 18
+        ch = 25
 
         tw = sw
         th = sh - self.topHeight
 
         current_symbol = self.editor.current_symbol
 
-        numRow = int(math.floor(th / ch)) + 1
+        num_rows = int(math.floor(th / ch)) + 1
 
-        lastRow = self.top_layer() + numRow
+        lastRow = self.top_layer() + num_rows
+
         if lastRow > current_symbol.num_layers():
             lastRow = current_symbol.num_layers()
 
@@ -75,8 +74,8 @@ class LayerListView(QWidget):
         painter.setBrush(QColor(214, 214, 214, 255))
         painter.drawRect(0, 0, sw, self.topHeight)
 
-        painter.setPen(QColor(0, 0, 0, 255))
-        painter.drawText(QPoint(0, 25), "Test")
+        # painter.setPen(QColor(0, 0, 0, 255))
+        # painter.drawText(QPoint(0, 25), "Test")
 
         pen = QPen(Qt.SolidLine)
         pen.setColor(QColor(222, 222, 222, 255))

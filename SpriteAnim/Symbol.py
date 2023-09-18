@@ -120,7 +120,6 @@ class Symbol:
             layer.load_from_xml(n, library)
             self.add_layer(layer)
 
-
             # layer.updateFrames()
 
         # self.updateTotalFrames()
@@ -144,10 +143,22 @@ class Symbol:
 
         layer = Layer(symbol)
         layer.name = "Layer 0"
+        frame = Frame(0, Frame.CONTENT_EMPTY, Frame.TYPE_KEY)
+        layer.frames.append(frame)
         symbol.add_layer(layer)
 
         layer = Layer(symbol)
         layer.name = "Layer 1"
+        layer.frames.append(Frame(0, Frame.CONTENT_EMPTY, Frame.TYPE_KEY))
+        layer.frames.append(Frame(1, Frame.CONTENT_EMPTY, Frame.TYPE_FRAME))
+        layer.frames.append(Frame(2, Frame.CONTENT_EMPTY, Frame.TYPE_FRAME))
+        layer.frames.append(Frame(3, Frame.CONTENT_EMPTY, Frame.TYPE_KEY))
+        layer.frames.append(Frame(4, Frame.CONTENT_EMPTY, Frame.TYPE_KEY))
+        # layer.frames
         symbol.add_layer(layer)
 
+        for layer in symbol.layers:
+            layer.update_frames()
+
+        symbol.update_layers()
         return symbol

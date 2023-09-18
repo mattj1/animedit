@@ -175,16 +175,14 @@ class Frame:
 
         offs = QPointF(0, 0)
 
-        assert "WIP"
-
         texToDraw = self.tex
         symToDraw = self.symbol
 
         if self.type == Frame.TYPE_FRAME:
-            kfStart = self.layer.frames[self.keyFrameStart]
-            kfEnd = self.layer.frames[self.keyFrameEnd]
-            if self.isTween:
-                t = (self.frameNo - self.keyFrameStart) / (self.keyFrameEnd - self.keyFrameStart)
+            kfStart = self.key_frame_start
+            kfEnd = self.key_frame_end
+            if kfStart.isTween:
+                t = (self.frameNo - kfStart.frameNo) / (kfEnd.frameNo - kfStart.frameNo)
                 offs.setX(t * (kfEnd.pos.x() - kfStart.pos.x()))
                 offs.setY(t * (kfEnd.pos.y() - kfStart.pos.y()))
             else:

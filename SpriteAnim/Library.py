@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from PySide6.QtCore import QByteArray
 
+import TextureMgr
 from SpriteAnim.symbol import Symbol
 
 
@@ -52,6 +53,7 @@ class TextureLibraryItem(LibraryItem):
         self.texture_path = texture_path
 
         self.type = LibraryItem.ITEM_TEXTURE
+        self.texture = None
 
     def getMimeType(self):
         return "application/x-qt-ampedit-mime-texture"
@@ -61,6 +63,12 @@ class TextureLibraryItem(LibraryItem):
 
     def __repr__(self) -> str:
         return f'<TextureLibraryItem texture_path={self.texture_path}>'
+
+    def get_texture(self):
+        if not self.texture:
+            self.texture = TextureMgr.textureMgr().loadImage(self.texture_path)
+
+        return self.texture
 
 
 class SymbolLibraryItem(LibraryItem):

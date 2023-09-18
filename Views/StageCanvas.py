@@ -3,11 +3,14 @@ from abc import abstractmethod
 from typing import Optional
 
 import PySide6
-from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtCore import QPoint, QPointF, Qt, QRect
 from PySide6.QtGui import QPainter, QColor, QTransform, QPen, QPixmap, QWheelEvent
 from PySide6.QtWidgets import QWidget, QApplication
 
+import TextureMgr
 from SpriteAnim import Symbol
+from SpriteAnim.frame import Frame
+from SpriteAnim.library import TextureLibraryItem, SymbolLibraryItem
 
 
 class StageCanvas(QWidget):
@@ -39,10 +42,9 @@ class StageCanvas(QWidget):
 
         self.setMouseTracking(True)
 
-    def eventFilter(self, watched: PySide6.QtCore.QObject, event: PySide6.QtCore.QEvent) -> bool:
-        print("StageCanvas eventfilter", event)
-        return super().eventFilter(watched, event)
-
+    @abstractmethod
+    def get_symbol(self) -> Symbol:
+        raise NotImplemented
 
     @abstractmethod
     def get_texture(self) -> QPixmap:
@@ -54,9 +56,39 @@ class StageCanvas(QWidget):
     def is_texture(self):
         return self.get_texture() is not None
 
+    def draw_symbol_frame(self, symbol: Symbol, frame_no: int, painter: QPainter):
+        for i in range(0, symbol.num_layers()):
+            layer = symbol.layers[i]
+            frame = layer.get_frame(frame_no)
+            if not frame:
+                continue
+
+            kf0: Frame = frame.key_frame_start
+
+            offs = frame.getOffs()
+
+            self.transform.translate(offs.x(), offs.y())
+            painter.setTransform(self.transform)
+
+            # print(f"will draw content {offs} from ", kf0)
+
+            if kf0.contentType == Frame.CONTENT_TEXTURE:
+                item: TextureLibraryItem = kf0.texture_ref.get_texture()
+                tex: QPixmap = item.get_texture()
+
+                painter.drawPixmap(QRect(0, 0, tex.width(), tex.height()), item.get_texture(), QRect(0, 0, tex.width(), tex.height()))
+
+            if kf0.contentType == Frame.CONTENT_SYMBOL:
+                symbol = kf0.symbol_ref.get_symbol()
+                # print("draw symbol, frame #", symbol, frame.cached_symbol_frame, "pos", kf0.pos)
+
+                self.draw_symbol_frame(symbol, frame.cached_symbol_frame, painter)
+
+            self.transform.translate(-offs.x(), -offs.y())
+            painter.setTransform(self.transform)
+
     def paintEvent(self, event):
         # Camera position is center of screen
-
         sw = self.width()
         sh = self.height()
         world_halfwidth = (sw / 2) / self.zoom
@@ -92,14 +124,14 @@ class StageCanvas(QWidget):
             
         """
 
-        # if self.is_symbol():
-        #     symbol = self.get_symbol()
-        #     if symbol:
-        #         symbol.drawFrame(f, painter=painter)
-        # else:
-        #     tex = self.get_texture()
-        #     if tex:
-        #         painter.drawPixmap(-tex.width() / 2, -tex.height() / 2, tex)
+        if self.is_symbol():
+            symbol = self.get_symbol()
+            self.draw_symbol_frame(symbol, f, painter=painter)
+        else:
+            raise NotImplemented
+            tex = self.get_texture()
+            if tex:
+                painter.drawPixmap(-tex.width() / 2, -tex.height() / 2, tex)
 
         # Draw pixel grid
 
@@ -164,9 +196,6 @@ class StageCanvas(QWidget):
         # if event.button() == Qt.MouseButton.RightButton:
         #     self.move_camera = False
 
-    def keyPressEvent(self, event: PySide6.QtGui.QKeyEvent) -> None:
-        print("keyPressEvent", event)
-
     def mouse_move(self, delta, event):
         pass
 
@@ -230,7 +259,7 @@ class StageCanvas(QWidget):
     # This gets overridden
     @abstractmethod
     def frame_number(self):
-        return 0
+        raise NotImplemented
 
     def allow_zoom(self) -> bool:
         return True

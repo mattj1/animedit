@@ -141,6 +141,7 @@ class Layer:
                 offs_y = int(f.get("y"))
 
                 frame.setPos(QPoint(offs_x, offs_y))
+                frame.isTween = f.get('tween') == 'true'
                 print(frame.pos)
 
             if f.tag == "frame":

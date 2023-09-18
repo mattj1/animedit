@@ -1,13 +1,81 @@
 from uuid import uuid4, UUID
 
+import PySide6.QtGui
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QSpacerItem, QSlider
+
 from Editor import Editor
 from Views.StageCanvas import StageCanvas
 
+
+class StageControls(QFrame):
+    def __init__(self, editor: Editor, parent=None):
+        super(StageControls, self).__init__(parent)
+        self.editor = editor
+
+        self.setFixedHeight(48)
+
+        self.setAutoFillBackground(True)
+        toolbar_layout = QHBoxLayout()
+        self.setLayout(toolbar_layout)
+        button = QPushButton('Play')
+        button.clicked.connect(self.play_pressed)
+        toolbar_layout.addWidget(button)
+        button = QPushButton('Stop')
+        button.clicked.connect(self.stopPressed)
+        toolbar_layout.addWidget(button)
+
+        slider = QSlider()
+        slider.setMaximum(30)
+        slider.setMinimum(1)
+        slider.setMaximumWidth(128)
+        slider.setOrientation(Qt.Horizontal)
+        toolbar_layout.addWidget(slider)
+
+        self.zoomSlider = slider
+
+        slider.valueChanged.connect(self.valueChanged)
+
+    def valueChanged(self, event):
+        print(event)
+        self.repaint()
+
+    def play_pressed(self):
+        self.editor.start_playback()
+
+    def stopPressed(self):
+        self.editor.stop_playback()
 
 class StageView(StageCanvas):
     def __init__(self, editor: Editor, parent=None):
         super(StageView, self).__init__(parent)
         self.editor = editor
+
+        self.stage_controls = StageControls(editor=editor, parent=self)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0 ,0)
+        layout.addStretch()
+        layout.addWidget(self.stage_controls)
+        self.setLayout(layout)
+
+
+    # def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:
+    #     super().resizeEvent(event)
+    #     print("resize, height", self.height())
+    #     self.toolbar_frame.move(0, self.height() - 48)
+    #     self.toolbar_frame.resize(self.width(), 48)
+    #     print(self.height())
+
+
+    def get_symbol(self):
+        return self.editor.current_symbol
+
+    def is_symbol(self):
+        return True
+
+    def frame_number(self):
+        return self.editor.frame_number
 
     #     self.canDrag = 1
     #
